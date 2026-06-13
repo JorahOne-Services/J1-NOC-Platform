@@ -1,31 +1,19 @@
-import { ReactNode } from 'react';
+import { Outlet } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
-export default function Layout({ children }: { children?: ReactNode }) {
+export default function Layout() {
+  const { user, logout } = useAuth();
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <header
-        style={{
-          borderBottom: '1px solid #334155',
-          padding: '14px 18px',
-          display: 'flex',
-          gap: 18,
-          alignItems: 'center',
-          justifyContent: 'space-between'
-        }}
-      >
-        <strong style={{ letterSpacing: 1 }}>J1 NOC Platform</strong>
-        <nav style={{ display: 'flex', gap: 12 }}>
-          <a href="/">Overview</a>
-          <a href="/ldap">LDAP</a>
-          <a href="/snmp">SNMP</a>
-          <a href="/chrony">Chrony</a>
-          <a href="/tickets">Tickets</a>
-          <a href="/dns">DNS</a>
-          <a href="/admin">Admin</a>
-          <a href="/ai">AI</a>
-        </nav>
+    <div className="layout">
+      <header className="app-header">
+        <div className="brand">J1 NOC Platform<span className="badge">v5</span></div>
+        <div className="user">
+          <span>{user?.username ? `${user.username} (${user.role})` : ''}</span>
+          <button onClick={logout}>Logout</button>
+        </div>
       </header>
-      <main style={{ padding: 20, flex: 1 }}>{children}</main>
+      <main className="app-main"><Outlet /></main>
+      <footer className="app-footer">Operations Dashboard</footer>
     </div>
   );
 }
