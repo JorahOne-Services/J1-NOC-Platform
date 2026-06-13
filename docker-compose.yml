@@ -11,20 +11,10 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-  backend:
-    build: ./backend
-    ports:
-      - "8000:8000"
-    env_file: .env.example
-    depends_on:
-      postgres:
-        condition: service_healthy
   frontend:
-    build: ./frontend
-    ports:
-      - "5173:80"
-  chrony-exporter:
-    image: monster102566/chrony-exporter:latest
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
   grafana:
     image: grafana/grafana:latest
     ports:
