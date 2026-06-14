@@ -5,6 +5,8 @@ import pathlib
 
 router = APIRouter()
 BASE = pathlib.Path('/srv/jnop/data')
+LOG_DIR = pathlib.Path('/srv/jnop/logs')
+LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 
 @router.get('/dc_status')
@@ -60,3 +62,10 @@ def tags():
 async def generate(request: Request):
     body = await request.json()
     return JSONResponse({'Success': True, 'Request': body})
+
+
+@router.get('/gcds-sample.log', include_in_schema=False)
+@router.get('/dc_replication_monitor.txt', include_in_schema=False)
+def serve_logs():
+    # Tiny text/plain response so the frontend doesn't fail fetch() casing
+    return PlainTextResponse('log placeholder')
