@@ -32,7 +32,9 @@ services:
       - DATABASE_URL=${DATABASE_URL}
       - REDIS_URL=${REDIS_URL}
       - SECRET_KEY=${SECRET_KEY}
-      - BACKEND_CORS_ORIGINS=http://localhost,http://127.0.0.1
+      - BACKEND_CORS_ORIGINS=${BACKEND_CORS_ORIGINS}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - GRAFANA_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
     depends_on:
       postgres:
         condition: service_healthy
@@ -158,7 +160,6 @@ services:
       - /var/log/syslog:/var/log/syslog:ro
     networks:
       - internal
-      - host
     environment:
       - COLLECTIONS=crowdsecurity/linux crowdsecurity/http-cve
 
