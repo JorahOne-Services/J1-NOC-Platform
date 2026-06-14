@@ -1,6 +1,6 @@
 # J1 NOC Operations Platform (JNOP)
 
-**Version:** v5.0  
+**Version:** v5.10  
 **Status:** Production Ready  
 **Repository:** https://github.com/OneByJorah/J1-NOC-Platform
 
@@ -50,7 +50,7 @@ Session identity and long-term memory are handled through **Honcho**; short-term
 |---|---|
 | Runtime | Linux (Ubuntu 22.04+/systemd) |
 | Backend | Python / FastAPI / Uvicorn |
-| Frontend | Static HTML5 Dashboard (Cyberpunk Dark Theme, v5.0) |
+| Frontend | Static HTML5 Dashboard (Cyberpunk Dark Theme, v5.10) |
 | Reverse Proxy | Nginx |
 | Process Manager | systemd (`jnop-backend.service`) |
 | VCS | Git + GitHub (`github.com/OneByJorah/J1-NOC-Platform`) |
@@ -165,7 +165,7 @@ J1-NOC-Platform/
 
 ## Screenshots
 
-All screenshots are live captures from the production instance (as of 2026-06-14).
+All screenshots are live captures from the production instance (as of 2026-06-14 v5.10).
 
 ### DC Replication
 ![DC Replication](docs/screenshots/dc-replication.png)
