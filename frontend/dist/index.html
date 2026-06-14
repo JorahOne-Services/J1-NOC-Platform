@@ -2550,15 +2550,47 @@ function loadSavedMonitors(){
   const monitors=JSON.parse(localStorage.getItem('noc_monitors')||'[]');
   const list=document.getElementById('saved-monitors-list');
   if(!monitors.length){ list.innerHTML='<p style="color:var(--dim);font-family:var(--mono);font-size:.8rem">No custom monitors added yet.</p>'; return; }
-  list.innerHTML=monitors.map((m,i)=>
-    `<div class="saved-monitor-item">
-      <span>${m.icon} <strong style="color:var(--primary)">${esc(m.name)}</strong> — <span style="color:var(--dim)">${esc(m.desc||m.url)}</span></span>
-      <div style="display:flex;gap:6px">
-        <button class="btn-sm" onclick="testMonitor(${i})">🔍 Test</button>
-        <button class="btn-sm btn-s" onclick="deleteMonitor(${i})">✕</button>
-      </div>
-    </div>`
-  ).join('');
+  list.innerHTML='';
+  monitors.forEach((m,i)=>{
+    const item=document.createElement('div');
+    item.className='saved-monitor-item';
+
+    const textWrap=document.createElement('span');
+    textWrap.append(document.createTextNode((m.icon||'')+' '));
+
+    const nameStrong=document.createElement('strong');
+    nameStrong.style.color='var(--primary)';
+    nameStrong.textContent=m.name||'';
+    textWrap.appendChild(nameStrong);
+
+    textWrap.append(document.createTextNode(' — '));
+
+    const detailSpan=document.createElement('span');
+    detailSpan.style.color='var(--dim)';
+    detailSpan.textContent=m.desc||m.url||'';
+    textWrap.appendChild(detailSpan);
+
+    const actions=document.createElement('div');
+    actions.style.display='flex';
+    actions.style.gap='6px';
+
+    const testBtn=document.createElement('button');
+    testBtn.className='btn-sm';
+    testBtn.textContent='🔍 Test';
+    testBtn.onclick=function(){ testMonitor(i); };
+
+    const delBtn=document.createElement('button');
+    delBtn.className='btn-sm btn-s';
+    delBtn.textContent='✕';
+    delBtn.onclick=function(){ deleteMonitor(i); };
+
+    actions.appendChild(testBtn);
+    actions.appendChild(delBtn);
+
+    item.appendChild(textWrap);
+    item.appendChild(actions);
+    list.appendChild(item);
+  });
 }
 
 function testMonitor(i){
