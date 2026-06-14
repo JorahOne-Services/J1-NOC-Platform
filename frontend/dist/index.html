@@ -156,11 +156,23 @@ header{text-align:center;margin-bottom:16px;padding-bottom:14px;border-bottom:1p
 
 /* TABS */
 
-.tab-nav{display:flex;gap:0;margin-bottom:16px;background:var(--card);border:1px solid var(--border);border-radius:10px;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin}
+.tab-nav-wrap{position:relative}
 
-.tab-nav::-webkit-scrollbar{height:3px}
+.tab-nav{display:flex;gap:0;margin-bottom:16px;background:var(--card);border:1px solid var(--border);border-radius:10px;overflow-x:auto;overflow-y:hidden;scroll-behavior:smooth;scrollbar-width:thin}
 
-.tab-nav::-webkit-scrollbar-thumb{background:rgba(0,243,255,0.3);border-radius:3px}
+.tab-nav::-webkit-scrollbar{height:6px}
+
+.tab-nav::-webkit-scrollbar-thumb{background:rgba(0,243,255,0.25);border-radius:3px}
+
+.tab-nav-btn{position:absolute;top:0;bottom:0;width:32px;border:none;background:rgba(6,6,21,0.7);color:var(--text);cursor:pointer;z-index:2;font-size:1.1rem;display:none;align-items:center;justify-content:center}
+
+.tab-nav-btn.show{display:flex}
+
+.tab-nav-btn.prev{left:0;border-radius:10px 0 0 10px}
+
+.tab-nav-btn.next{right:0;border-radius:0 10px 10px 0}
+
+.tab-nav-btn:hover{background:rgba(0,243,255,0.12)}
 
 .tab-btn{flex-shrink:0;padding:11px 18px;background:transparent;border:none;border-right:1px solid var(--border);color:var(--dim);cursor:pointer;font-family:var(--mono);font-size:.76rem;letter-spacing:.06em;text-transform:uppercase;transition:all .2s;white-space:nowrap;position:relative}
 
@@ -2550,47 +2562,15 @@ function loadSavedMonitors(){
   const monitors=JSON.parse(localStorage.getItem('noc_monitors')||'[]');
   const list=document.getElementById('saved-monitors-list');
   if(!monitors.length){ list.innerHTML='<p style="color:var(--dim);font-family:var(--mono);font-size:.8rem">No custom monitors added yet.</p>'; return; }
-  list.innerHTML='';
-  monitors.forEach((m,i)=>{
-    const item=document.createElement('div');
-    item.className='saved-monitor-item';
-
-    const textWrap=document.createElement('span');
-    textWrap.append(document.createTextNode((m.icon||'')+' '));
-
-    const nameStrong=document.createElement('strong');
-    nameStrong.style.color='var(--primary)';
-    nameStrong.textContent=m.name||'';
-    textWrap.appendChild(nameStrong);
-
-    textWrap.append(document.createTextNode(' — '));
-
-    const detailSpan=document.createElement('span');
-    detailSpan.style.color='var(--dim)';
-    detailSpan.textContent=m.desc||m.url||'';
-    textWrap.appendChild(detailSpan);
-
-    const actions=document.createElement('div');
-    actions.style.display='flex';
-    actions.style.gap='6px';
-
-    const testBtn=document.createElement('button');
-    testBtn.className='btn-sm';
-    testBtn.textContent='🔍 Test';
-    testBtn.onclick=function(){ testMonitor(i); };
-
-    const delBtn=document.createElement('button');
-    delBtn.className='btn-sm btn-s';
-    delBtn.textContent='✕';
-    delBtn.onclick=function(){ deleteMonitor(i); };
-
-    actions.appendChild(testBtn);
-    actions.appendChild(delBtn);
-
-    item.appendChild(textWrap);
-    item.appendChild(actions);
-    list.appendChild(item);
-  });
+  list.innerHTML=monitors.map((m,i)=>
+    `<div class="saved-monitor-item">
+      <span>${m.icon} <strong style="color:var(--primary)">${esc(m.name)}</strong> — <span style="color:var(--dim)">${esc(m.desc||m.url)}</span></span>
+      <div style="display:flex;gap:6px">
+        <button class="btn-sm" onclick="testMonitor(${i})">🔍 Test</button>
+        <button class="btn-sm btn-s" onclick="deleteMonitor(${i})">✕</button>
+      </div>
+    </div>`
+  ).join('');
 }
 
 function testMonitor(i){
