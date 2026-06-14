@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import get_settings
 from .database import engine, Base
-from .routers import health, auth, dashboard, notifications, tools, ai
+from .routers import health, auth, dashboard, notifications, tools, ai, static_data
 
 
 settings = get_settings()
@@ -38,6 +38,12 @@ def create_app() -> FastAPI:
     def healthz_root():
         return {"status": "ok"}
 
+    @app.post("/forcerepl", include_in_schema=False)
+    async def forcerepl_root(request: Request):
+        from app.routers.static_data import force_repl
+        return await force_repl(request)
+
+    app.include_router(static_data.router, prefix="/api")
     app.include_router(health.router)
     app.include_router(health.router, prefix="/api")
     app.include_router(auth.router, prefix="/api")
