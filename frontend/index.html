@@ -782,6 +782,40 @@ What would you like to know?</div>
       </div>
     </div>
   </div>
+<!-- ════════════════════ TAB 8: PBX / MITEL SNMP ════════════════════ -->
+<div id="tab-pbx" class="tab-pane">
+  <div class="ctrls">
+    <button onclick="loadPBXData()">🔄 Refresh</button>
+    <button class="btn-w" onclick="loadPBXSNMP()">📡 SNMP Walk</button>
+    <span id="pbx-status" style="font-family:var(--mono);font-size:.75rem;color:var(--dim)"></span>
+  </div>
+  <div class="stats-row">
+    <div class="stat s-c"><h3>Total PBXs</h3><span id="pbx-total">0</span></div>
+    <div class="stat s-ok"><h3>Healthy</h3><span id="pbx-healthy">0</span></div>
+    <div class="stat s-w"><h3>Degraded</h3><span id="pbx-degraded">0</span></div>
+    <div class="stat s-e"><h3>Critical</h3><span id="pbx-critical">0</span></div>
+  </div>
+  <div class="charts-grid">
+    <div class="chart-card"><canvas id="pbxStatusChart" height="200"></canvas></div>
+    <div class="chart-card"><canvas id="pbxCallsChart" height="200"></canvas></div>
+  </div>
+  <div class="tbl-wrap">
+    <table id="pbx-table">
+      <thead><tr>
+        <th onclick="sortPBX(0)">PBX Name</th><th onclick="sortPBX(1)">Host</th>
+        <th onclick="sortPBX(2)">Model</th><th onclick="sortPBX(3)">Status</th>
+        <th onclick="sortPBX(4)">Uptime %</th><th onclick="sortPBX(5)">Active Calls</th>
+        <th>Actions</th>
+      </tr></thead>
+      <tbody id="pbx-tbody"><tr><td colspan="7" style="text-align:center;color:var(--dim);padding:28px">Click Refresh to load PBX status</td></tr></tbody>
+    </table>
+  </div>
+  <div class="events-panel">
+    <div class="events-hdr"><h3>📡 SNMP Walk Data</h3><button class="btn-sm btn-s" onclick="clearEvents('pbx')">Clear</button></div>
+    <div class="evt-feed" id="pbx-events" style="font-family:var(--mono);font-size:.7rem;max-height:300px;overflow:auto"></div>
+  </div>
+</div>
+
 <!-- ════════════════════ TAB 9: HELPDESK ════════════════════ -->
 <div id="tab-helpdesk" class="tab-pane">
   <div class="ctrls">
@@ -948,6 +982,7 @@ const STATE = {
   logs: { current:'ck', raw:'', urls:{ck:'dc_replication_monitor.txt', gcds:'gcds-sample.log', dc:'dc_replication_monitor.txt'} },
   ubuntu: { cpuHistory:[], chart:null },
   ollama: { url:'http://localhost:11434', model:'llama3.2', tokens:1024 },
+  pbx: { data:[], loaded:false },
   alerts: { email:true, tg:true, teams:true }
 };
 const DC_CRITICAL = '192.0.2.7';
@@ -956,7 +991,7 @@ let ubuntuChart = null;
 let ntpDriftChart = null;
 let dnsChart = null;
 let refreshTimers = {};
-const REFRESH_INTERVALS = { dc:60, ntp:60, logs:30, ubuntu:60, gsync:120 };
+const REFRESH_INTERVALS = { dc:60, ntp:60, logs:30, ubuntu:60, gsync:120, pbx:60 };
 
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') }
 
@@ -1106,9 +1141,127 @@ function switchTab(id, btn){
   if(id==='logs' && !STATE.logs.loaded){ refreshCurrentLog(); STATE.logs.loaded=true; }
   if(id==='ubuntu' && !STATE.ubuntu.loaded){ loadUbuntuData(); STATE.ubuntu.loaded=true; }
   if(id==='gsync' && !STATE.gsync_loaded){ loadGSyncData(); STATE.gsync_loaded=true; }
+  if(id==='pbx' && !STATE.pbx.loaded){ loadPBXData(); STATE.pbx.loaded=true; }
 }
 
 /* ════ HELPDESK ════ */
+
+/* ═════════════════════════════════ PBX / MITEL SNMP ═════════════════════════════════ */
+async function loadPBXData() {
+  const el = document.getElementById('pbx-status');
+  if (el) el.textContent = 'Loading…';
+  try {
+    const r = await fetch('/api/pbx/status');
+    const data = await r.json();
+    renderPBXTable(data);
+    renderPBXCharts(data);
+    if (el) el.textContent = `Loaded ${data.length} PBXs`;
+    addGlobalEvent('info', '📞', `PBX status refreshed — ${data.length} devices`);
+  } catch (e) {
+    if (el) el.textContent = 'Failed to load';
+    addGlobalEvent('err', '📞', 'PBX load failed: ' + e.message);
+  }
+}
+
+async function loadPBXSNMP() {
+  const el = document.getElementById('pbx-status');
+  if (el) el.textContent = 'Loading SNMP…';
+  try {
+    const r = await fetch('/api/pbx/snmp/walk');
+    const data = await r.json();
+    const feed = document.getElementById('pbx-events');
+    if (feed) {
+      feed.innerHTML = '<pre style="margin:0;white-space:pre-wrap">' + JSON.stringify(data, null, 2) + '</pre>';
+    }
+    if (el) el.textContent = 'SNMP walk loaded';
+    addGlobalEvent('info', '📡', 'SNMP walk retrieved for Mitel PBX');
+  } catch (e) {
+    if (el) el.textContent = 'SNMP failed';
+    addGlobalEvent('err', '📡', 'SNMP walk failed: ' + e.message);
+  }
+}
+
+function renderPBXTable(data) {
+  const tbody = document.getElementById('pbx-tbody');
+  if (!tbody) return;
+  let healthy = 0, degraded = 0, critical = 0;
+  tbody.innerHTML = data.map(pbx => {
+    const status = pbx.status || 'unknown';
+    if (status === 'healthy') healthy++;
+    else if (status === 'degraded') degraded++;
+    else if (status === 'critical') critical++;
+    const statusClass = status === 'healthy' ? 'ok' : (status === 'degraded' ? 'warn' : 'err');
+    return `<tr>
+      <td>${pbx.name || '-'}</td>
+      <td><code>${pbx.host || '-'}</code></td>
+      <td>${pbx.model || '-'}</td>
+      <td><span class="pdot ${statusClass}"></span> ${status}</td>
+      <td>${pbx.uptime_pct || 0}%</td>
+      <td>${pbx.active_calls || 0}</td>
+      <td><button class="btn-sm btn-s" onclick="showPBXDetails('${pbx.host}')">Details</button></td>
+    </tr>`;
+  }).join('');
+  document.getElementById('pbx-total').textContent = data.length;
+  document.getElementById('pbx-healthy').textContent = healthy;
+  document.getElementById('pbx-degraded').textContent = degraded;
+  document.getElementById('pbx-critical').textContent = critical;
+}
+
+function renderPBXCharts(data) {
+  const statusCtx = document.getElementById('pbxStatusChart')?.getContext('2d');
+  const callsCtx = document.getElementById('pbxCallsChart')?.getContext('2d');
+  if (!statusCtx || !callsCtx) return;
+
+  const statusCounts = { healthy: 0, degraded: 0, critical: 0, unknown: 0 };
+  const labels = data.map(d => d.name || d.host);
+  const callsData = data.map(d => d.active_calls || 0);
+
+  data.forEach(d => { statusCounts[d.status || 'unknown']++; });
+
+  if (window.pbxStatusChart) window.pbxStatusChart.destroy();
+  if (window.pbxCallsChart) window.pbxCallsChart.destroy();
+
+  window.pbxStatusChart = new Chart(statusCtx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Healthy', 'Degraded', 'Critical', 'Unknown'],
+      datasets: [{
+        data: [statusCounts.healthy, statusCounts.degraded, statusCounts.critical, statusCounts.unknown],
+        backgroundColor: ['var(--ok)', 'var(--warn)', 'var(--err)', 'var(--dim)']
+      }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 10 } } } } }
+  });
+
+  window.pbxCallsChart = new Chart(callsCtx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{ label: 'Active Calls', data: callsData, backgroundColor: 'var(--primary)' }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true } } }
+  });
+}
+
+function sortPBX(col) {
+  const tbody = document.getElementById('pbx-tbody');
+  const rows = Array.from(tbody.rows);
+  const isNumeric = [4, 5].includes(col);
+  const asc = tbody.dataset.sortCol === String(col) && tbody.dataset.sortDir === 'asc';
+  tbody.dataset.sortCol = col;
+  tbody.dataset.sortDir = asc ? 'desc' : 'asc';
+  rows.sort((a, b) => {
+    const av = a.cells[col].textContent.trim();
+    const bv = b.cells[col].textContent.trim();
+    return (isNumeric ? parseFloat(av) - parseFloat(bv) : av.localeCompare(bv)) * (asc ? -1 : 1);
+  });
+  rows.forEach(r => tbody.appendChild(r));
+}
+
+function showPBXDetails(host) {
+  toast('PBX details for ' + host + ' — see SNMP Walk button', 'info', 3000);
+}
+
 function loadHelpdeskTickets(){
   const el=document.getElementById('helpdesk-status'); if(el) el.textContent='Loading…';
   fetch('/api/helpdesk/tickets').then(r=>r.json()).then(data=>renderHelpdeskTickets(data)).catch(()=>{renderHelpdeskTickets([]);}).finally(()=>{ const el=document.getElementById('helpdesk-status'); if(el) el.textContent=''; });
@@ -2137,6 +2290,8 @@ function initRefreshTimers(){
   setInterval(()=>{ if(STATE.ubuntu.loaded) loadUbuntuData(); }, REFRESH_INTERVALS.ubuntu*1000);
   // GCDS: every 2min (only if opened)
   setInterval(()=>{ if(STATE.gsync_loaded) loadGSyncData(); }, REFRESH_INTERVALS.gsync*1000);
+  // PBX: every 60s (only if tab was opened)
+  setInterval(()=>{ if(STATE.pbx.loaded) loadPBXData(); }, REFRESH_INTERVALS.pbx*1000);
 }
 
 function loadSavedConfig(){
