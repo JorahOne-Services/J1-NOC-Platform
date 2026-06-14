@@ -92,7 +92,7 @@ services:
     networks:
       - internal
     healthcheck:
-      test: ["CMD-SHELL", "redis-cli -a ${REDIS_PASSWORD} ping | grep PONG"]
+      test: ["CMD-SHELL", "bash -c 'if [ -n "${REDIS_PASSWORD}" ]; then redis-cli -a "${REDIS_PASSWORD}" ping | grep PONG; else redis-cli ping | grep PONG; fi'"]
       interval: 10s
       timeout: 3s
       retries: 3
