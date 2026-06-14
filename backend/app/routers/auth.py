@@ -7,8 +7,8 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel, EmailStr
 
-from ...app.database import SessionLocal
-from ...app.models import User, Role
+from ..database import SessionLocal
+from ..models import User, Role
 from ..config import get_settings
 
 router = APIRouter()

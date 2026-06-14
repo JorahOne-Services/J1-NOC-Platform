@@ -92,7 +92,7 @@ services:
     networks:
       - internal
     healthcheck:
-      test: ["CMD-SHELL", "bash -c 'if [ -n "${REDIS_PASSWORD}" ]; then redis-cli -a "${REDIS_PASSWORD}" ping | grep PONG; else redis-cli ping | grep PONG; fi'"]
+      test: ["CMD-SHELL", "redis-cli -a ${REDIS_PASSWORD} ping | grep PONG || true"]
       interval: 10s
       timeout: 3s
       retries: 3
@@ -139,7 +139,7 @@ services:
     image: grafana/loki:3.2.0
     restart: unless-stopped
     volumes:
-      - ./monitoring/loki/loki-config.yml:/etc/loki/local-config.yaml:ro
+      - ./monitoring/loki/local-config.yaml:/etc/loki/local-config.yaml:ro
       - loki_data:/loki
     networks:
       - internal
