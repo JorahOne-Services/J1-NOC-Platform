@@ -2248,16 +2248,56 @@ function addNewTabButton(icon,name){
 function loadSavedMonitors(){
   const monitors=JSON.parse(localStorage.getItem('noc_monitors')||'[]');
   const list=document.getElementById('saved-monitors-list');
-  if(!monitors.length){ list.innerHTML='<p style="color:var(--dim);font-family:var(--mono);font-size:.8rem">No custom monitors added yet.</p>'; return; }
-  list.innerHTML=monitors.map((m,i)=>
-    `<div class="saved-monitor-item">
-      <span>${m.icon} <strong style="color:var(--primary)">${esc(m.name)}</strong> — <span style="color:var(--dim)">${esc(m.desc||m.url)}</span></span>
-      <div style="display:flex;gap:6px">
-        <button class="btn-sm" onclick="testMonitor(${i})">🔍 Test</button>
-        <button class="btn-sm btn-s" onclick="deleteMonitor(${i})">✕</button>
-      </div>
-    </div>`
-  ).join('');
+  list.textContent='';
+  if(!monitors.length){
+    const p=document.createElement('p');
+    p.style.color='var(--dim)';
+    p.style.fontFamily='var(--mono)';
+    p.style.fontSize='.8rem';
+    p.textContent='No custom monitors added yet.';
+    list.appendChild(p);
+    return;
+  }
+  monitors.forEach((m,i)=>{
+    const item=document.createElement('div');
+    item.className='saved-monitor-item';
+
+    const info=document.createElement('span');
+    info.appendChild(document.createTextNode((m.icon||'')+' '));
+
+    const strong=document.createElement('strong');
+    strong.style.color='var(--primary)';
+    strong.textContent=m.name||'';
+    info.appendChild(strong);
+
+    info.appendChild(document.createTextNode(' — '));
+
+    const sub=document.createElement('span');
+    sub.style.color='var(--dim)';
+    sub.textContent=(m.desc||m.url||'');
+    info.appendChild(sub);
+
+    const actions=document.createElement('div');
+    actions.style.display='flex';
+    actions.style.gap='6px';
+
+    const testBtn=document.createElement('button');
+    testBtn.className='btn-sm';
+    testBtn.textContent='🔍 Test';
+    testBtn.addEventListener('click',()=>testMonitor(i));
+
+    const delBtn=document.createElement('button');
+    delBtn.className='btn-sm btn-s';
+    delBtn.textContent='✕';
+    delBtn.addEventListener('click',()=>deleteMonitor(i));
+
+    actions.appendChild(testBtn);
+    actions.appendChild(delBtn);
+
+    item.appendChild(info);
+    item.appendChild(actions);
+    list.appendChild(item);
+  });
 }
 
 function testMonitor(i){
