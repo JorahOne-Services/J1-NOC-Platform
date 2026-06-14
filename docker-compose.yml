@@ -164,7 +164,7 @@ services:
       - COLLECTIONS=crowdsecurity/linux crowdsecurity/http-cve
 
   chrony-exporter:
-    image: docker.io/prometheuscommunity/chrony-exporter:latest
+    image: quay.io/prometheuscommunity/chrony-exporter:latest
     restart: unless-stopped
     networks:
       - internal
