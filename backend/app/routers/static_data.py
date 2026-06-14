@@ -49,3 +49,14 @@ def ntp_clients():
 async def force_repl(request: Request):
     body = await request.json()
     return JSONResponse({'Success': True, 'Request': body})
+
+
+@router.get('/tags')
+def tags():
+    return JSONResponse([])
+
+
+@router.post('/generate')
+async def generate(request: Request):
+    body = await request.json()
+    return JSONResponse({'Success': True, 'Request': body})
