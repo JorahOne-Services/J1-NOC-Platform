@@ -431,6 +431,8 @@ footer span{color:var(--primary)}
   <button class="tab-btn" onclick="switchTab('gsync',this)" role="tab">☁️ Google Sync<span class="tbadge hidden" id="badge-gsync">0</span></button>
   <button class="tab-btn" onclick="switchTab('ubuntu',this)" role="tab">🐧 Ubuntu Server</button>
   <button class="tab-btn" onclick="switchTab('ollama',this)" role="tab">🤖 Ollama AI</button>
+  <button class="tab-btn" onclick="switchTab('pbx',this)" role="tab">📞 PBX</button>
+  <button class="tab-btn" onclick="switchTab('helpdesk',this)" role="tab">🎫 Helpdesk</button>
   <button class="tab-btn btn-s" onclick="switchTab('addtab',this)" role="tab">➕ Add Monitor</button>
 </nav>
 
@@ -780,6 +782,31 @@ What would you like to know?</div>
       </div>
     </div>
   </div>
+<!-- ════════════════════ TAB 9: HELPDESK ════════════════════ -->
+<div id="tab-helpdesk" class="tab-pane">
+  <div class="ctrls">
+    <button onclick="loadHelpdeskTickets()">🔄 Refresh</button>
+    <input id="helpdesk-ticket-id" placeholder="Ticket ID" style="width:120px">
+    <button onclick="loadHelpdeskTicket()">🔎 View Ticket</button>
+    <button class="btn-g" onclick="openCreateTicket()">➕ Create Ticket</button>
+    <span id="helpdesk-status" style="font-family:var(--mono);font-size:.75rem;color:var(--dim)"></span>
+  </div>
+  <div class="tbl-wrap">
+    <table id="helpdesk-table">
+      <thead><tr><th>Ticket#</th><th>Name</th><th>Email</th><th>Subject</th><th>Status</th><th>Created</th></tr></thead>
+      <tbody id="helpdesk-tbody"><tr><td colspan="6" style="text-align:center;color:var(--dim);padding:24px">Load tickets to see active helpdesk items.</td></tr></tbody>
+    </table>
+  </div>
+  <div id="helpdesk-create" class="card" style="display:none;margin-top:14px">
+    <div class="card-hdr"><h3>Create Ticket</h3><button class="btn-sm btn-s" onclick="document.getElementById('helpdesk-create').style.display='none'">✕ Close</button></div>
+    <div class="form-row">
+      <div><label>Name</label><input type="text" id="h-name" placeholder="Your name"></div>
+      <div><label>Email</label><input type="text" id="h-email" placeholder="you@example.com"></div>
+    </div>
+    <div class="form-row full" style="margin-top:8px"><label>Subject</label><input type="text" id="h-subject" placeholder="Issue summary"></div>
+    <div class="form-row full" style="margin-top:8px"><label>Message</label><textarea id="h-message" rows="4" placeholder="Describe the issue"></textarea></div>
+    <button class="btn-g" style="margin-top:10px" onclick="submitTicket()">📨 Submit</button>
+  </div>
 </div>
 
 <!-- ════════════════════ TAB 8: ADD MONITOR ════════════════════ -->
@@ -1081,6 +1108,25 @@ function switchTab(id, btn){
   if(id==='gsync' && !STATE.gsync_loaded){ loadGSyncData(); STATE.gsync_loaded=true; }
 }
 
+/* ════ HELPDESK ════ */
+function loadHelpdeskTickets(){
+  const el=document.getElementById('helpdesk-status'); if(el) el.textContent='Loading…';
+  fetch('/api/helpdesk/tickets').then(r=>r.json()).then(data=>renderHelpdeskTickets(data)).catch(()=>{renderHelpdeskTickets([]);}).finally(()=>{ const el=document.getElementById('helpdesk-status'); if(el) el.textContent=''; });
+}
+function renderHelpdeskTickets(data){
+  const items=Array.isArray(data)?data:((data&&data.tickets)?data.tickets:[]); const tbody=document.getElementById('helpdesk-tbody'); if(!tbody) return;
+  const rows=items.map(t=>`<tr><td>${t.number??t.id??'—'}</td><td>${t.name??t.fullname??'—'}</td><td>${t.email??'—'}</td><td>${t.subject??t.title??'—'}</td><td>${t.status??'—'}</td><td>${t.created??t.created_at??'—'}</td></tr>`).join('');
+  tbody.innerHTML=rows||`<tr><td colspan="6" style="text-align:center;color:var(--dim);padding:24px">No tickets found.</td></tr>`;
+}
+function loadHelpdeskTicket(){
+  const id=document.getElementById('helpdesk-ticket-id')?.value?.trim(); if(!id){ toast('Enter a ticket ID','warn'); return; }
+  fetch('/api/helpdesk/tickets/'+encodeURIComponent(id)).then(r=>r.json()).then(data=> toast('Ticket '+id+': '+(data.subject||data.title||'loaded'),'ok')).catch(()=> toast('Ticket not found','warn'));
+}
+function openCreateTicket(){ document.getElementById('helpdesk-create').style.display='block'; }
+function submitTicket(){
+  const body={name:document.getElementById('h-name').value, email:document.getElementById('h-email').value, subject:document.getElementById('h-subject').value, message:document.getElementById('h-message').value};
+  fetch('/api/helpdesk/tickets',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>r.json()).then(data=>{ toast('Ticket created','ok'); document.getElementById('helpdesk-create').style.display='none'; loadHelpdeskTickets(); }).catch(()=> toast('Create failed','warn'));
+}
 /* ════ EVENTS / FEED ════ */
 const allEvents = { dc:[], ntp:[], logs:[], gsync:[], ubuntu:[] };
 function addEvent(feed, level, icon, msg){
@@ -1243,7 +1289,7 @@ function forceReplAll(){
   let done=0, errors=0;
   toast(`Sending replication to ${healthy.length} DCs…`,'warn',4000);
   healthy.forEach(dc=>{
-    fetch(`http://${host}:8080/forcerepl`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({DCName:dc.DCName,IPAddress:dc.IPAddress})})
+    fetch(`http://${window.location.hostname}/forcerepl`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({DCName:dc.DCName,IPAddress:dc.IPAddress})})
     .then(r=>r.json()).then(r=>{ done++; if(!r.Success)errors++; if(done===healthy.length) toast(`✅ All ${done} done. Errors: ${errors}`, errors?'warn':'ok',5000); })
     .catch(()=>{ errors++; done++; if(done===healthy.length) toast('⚠️ API not running on :8080','err',6000); });
   });
@@ -1326,7 +1372,7 @@ function confirmReplAPI(idx){
   if(btn) btn.disabled=true;
   box.className='repl-status-box visible running';
   box.textContent='⚡ Sending replication request…';
-  fetch(`http://${window.location.hostname}:8080/forcerepl`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({DCName:dc.DCName,IPAddress:dc.IPAddress})})
+  fetch(`http://${window.location.hostname}/forcerepl`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({DCName:dc.DCName,IPAddress:dc.IPAddress})})
   .then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
   .then(result=>{
     if(result.Success){ box.className='repl-status-box visible success'; box.textContent='✅ Replication triggered for '+dc.DCName+'\n\n'+(result.Output||'repadmin /syncall completed'); toast('Replication triggered','ok',4000); addEvent('dc','ok','⚡','Force replication → '+dc.DCName+' SUCCESS'); }
