@@ -163,7 +163,6 @@ services:
     environment:
       - COLLECTIONS=crowdsecurity/linux crowdsecurity/http-cve
 
-  snmp-exporter:
     image: prom/snmp-exporter:latest
     restart: unless-stopped
     volumes:
