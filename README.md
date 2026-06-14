@@ -128,7 +128,7 @@ stat -c "%s %n" /var/www/noc/index.html
 # Expect ~production size (do not accept a truncated file)
 ```
 
-Remote dashboard: `http://100.72.207.60/`
+Access the dashboard via your configured reverse proxy / hostname.
 
 ---
 
