@@ -1446,14 +1446,21 @@ function testAlerts() {
 function sendAlert(title, msg) {
   const cfg = STATE.alerts;
   if(cfg.tg) {
-    const tok = document.getElementById('tg-token').value;
-    const cid = document.getElementById('tg-chat').value;
-    if(tok && cid) {
-      fetch(`https://api.telegram.org/bot${tok}/sendMessage`, {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({chat_id:cid, text:`🚨 <b>${title}</b>\n\n${msg}`, parse_mode:'HTML'})
-      }).then(()=>{ ALERT_COUNTS.tg++; updateAlertCounters(); }).catch(()=>{});
-    }
+    fetch('/api/notifications/send', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({title, message: msg})
+    }).then((r) => r.json().then((data) => ({ok: r.ok, data}))).then((res) => {
+      if (res.ok) {
+        ALERT_COUNTS.tg++;
+        updateAlertCounters();
+        addGlobalEvent('info', '✈️', 'Telegram notification queued');
+      } else {
+        throw new Error(res.data?.detail || 'failed');
+      }
+    }).catch((e) => {
+      addGlobalEvent('err', '✈️', 'Telegram send failed: ' + (e.message || 'error'));
+    });
   }
   if(cfg.email) { ALERT_COUNTS.email++; updateAlertCounters(); }
   if(cfg.teams) { ALERT_COUNTS.teams++; updateAlertCounters(); }
