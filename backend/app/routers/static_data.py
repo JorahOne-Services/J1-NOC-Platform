@@ -93,13 +93,36 @@ def pbx_status():
     data = []
     for host in PBX_HOSTS:
         status = _pick_status(host["host"])
+        is_healthy = status == "healthy"
+        is_degraded = status == "degraded"
+        uptime = 99.2 if is_healthy else (87.5 if is_degraded else 62.1)
+        cpu = random.randint(15, 45) if is_healthy else random.randint(45, 75)
+        memory = random.randint(30, 60) if is_healthy else random.randint(60, 85)
+        disk = random.randint(20, 50) if is_healthy else random.randint(50, 80)
+        active_calls = random.randint(12, 220)
+        registrations = random.randint(80, 150)
+        trunks_total = random.randint(8, 16)
+        trunks_active = trunks_total - (0 if is_healthy else random.randint(1, 3))
         data.append({
             "host": host["host"],
             "name": host["name"],
             "model": host["model"],
             "status": status,
-            "uptime_pct": 99.2 if status == "healthy" else (87.5 if status == "degraded" else 62.1),
-            "active_calls": random.randint(12, 220),
+            "uptime_pct": uptime,
+            "uptime_since": "2026-06-01T00:00:00Z",
+            "cpu": cpu,
+            "cpu_cores": 4,
+            "cpu_mhz": 2400,
+            "memory": memory,
+            "ram_used": round(random.uniform(2.0, 6.0), 1),
+            "ram_total": 8.0,
+            "disk": disk,
+            "disk_used": round(random.uniform(50.0, 200.0), 1),
+            "disk_total": 500.0,
+            "active_calls": active_calls,
+            "registrations": registrations,
+            "trunks_active": trunks_active,
+            "trunks_total": trunks_total,
         })
     return JSONResponse(data)
 
