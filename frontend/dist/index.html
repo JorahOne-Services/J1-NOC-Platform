@@ -456,7 +456,7 @@ tbody tr.err-row:hover{background:rgba(255,56,96,0.09)}
 
 /* ── TAB 6: UBUNTU SERVER ── */
 
-.ubuntu-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-bottom:14px}
+.ssl-grid,.ubuntu-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-bottom:14px}
 
 .ub-metric{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px;text-align:center}
 
@@ -745,6 +745,7 @@ footer span{color:var(--primary)}
   <button class="tab-btn" onclick="switchTab('pbx',this)" role="tab">📞 VoIP</button>
   <button class="tab-btn" onclick="switchTab('helpdesk',this)" role="tab">🎫 Tickets</button>
   <button class="tab-btn" onclick="switchTab('winagents',this)" role="tab">💻 Endpoints</button>
+  <button class="tab-btn" onclick="switchTab('ssl',this)" role="tab">🔒 SSL</button>
   <button class="tab-btn btn-s" onclick="switchTab('addtab',this)" role="tab">➕ Add</button>
 </nav>
 
@@ -1270,7 +1271,66 @@ What would you like to know?</div>
 </div>
 </div>
 
-<!-- ════════════════════ TAB 8: ADD MONITOR ════════════════════ -->
+<!-- ════════════════════ TAB 8: SSL / CERTIFICATES ════════════════════ -->
+<div id="tab-ssl" class="tab-pane">
+  <div class="ctrls">
+    <button onclick="loadSSLData()">🔄 Refresh</button>
+    <div class="ssl-summary" id="ssl-summary" style="display:flex;gap:12px;align-items:center;font-family:var(--mono);font-size:.8rem">
+      <span id="ssl-total" style="color:var(--dim)">-- domains</span>
+      <span id="ssl-ok" style="color:var(--ok)">-- OK</span>
+      <span id="ssl-warn" style="color:var(--warn)">-- expiring</span>
+      <span id="ssl-critical" style="color:var(--err)">-- expired</span>
+      <span id="ssl-down" style="color:var(--err)">-- down</span>
+    </div>
+  </div>
+
+  <div class="ssl-grid">
+    <!-- Certificate Expiry Cards -->
+    <div class="card" style="padding:14px 18px">
+      <div class="card-hdr"><h3>📜 Certificate Expiry</h3></div>
+      <table style="width:100%;border-collapse:collapse;font-family:var(--mono);font-size:.78rem">
+        <thead>
+          <tr style="color:var(--dim);text-align:left;border-bottom:1px solid var(--border)">
+            <th style="padding:6px 8px">Domain</th>
+            <th style="padding:6px 8px">Issuer</th>
+            <th style="padding:6px 8px">Expires</th>
+            <th style="padding:6px 8px;text-align:right">Days Left</th>
+            <th style="padding:6px 8px;text-align:center">Status</th>
+            <th style="padding:6px 8px">SAN</th>
+          </tr>
+        </thead>
+        <tbody id="ssl-cert-table">
+          <tr><td colspan="6" style="color:var(--dim);padding:10px;text-align:center">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Domain Response Times -->
+    <div class="card" style="padding:14px 18px">
+      <div class="card-hdr"><h3>🌐 Domain Response</h3></div>
+      <div class="ssl-response-list" id="ssl-response-list">
+        <span style="color:var(--dim)">Loading response times...</span>
+      </div>
+    </div>
+
+    <!-- Certificate Timeline -->
+    <div class="card" style="padding:14px 18px;grid-column:1/-1">
+      <div class="card-hdr"><h3>📅 Certificate Timeline</h3></div>
+      <div class="ssl-timeline" id="ssl-timeline" style="overflow-x:auto">
+        <span style="color:var(--dim)">Loading timeline...</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="events-panel">
+    <div class="events-hdr"><h3>🔒 SSL Events</h3><button class="btn-sm btn-s" onclick="clearEvents('ssl')">Clear</button></div>
+    <div class="evt-feed" id="ssl-events"></div>
+  </div>
+</div>
+
+</div>
+
+<!-- ════════════════════ TAB 9: ADD MONITOR ════════════════════ -->
 <div id="tab-addtab" class="tab-pane">
   <div style="margin-bottom:14px">
     <div class="card" style="padding:14px 18px">
@@ -1411,6 +1471,7 @@ const STATE = {
   ollama: { url:'http://localhost:11434', model:'llama3.2', tokens:1024 },
   pbx: { data:[], loaded:false },
   pbx_walk: { loaded:false },
+  ssl: { certs:[], response:[], loaded:false },
   alerts: { email:true, tg:true, teams:true }
 };
 const DC_CRITICAL = '192.0.2.7';
@@ -1571,6 +1632,7 @@ function switchTab(id, btn){
   if(id==='ubuntu' && !STATE.ubuntu.loaded){ loadUbuntuData(); STATE.ubuntu.loaded=true; }
   if(id==='gsync' && !STATE.gsync_loaded){ loadGSyncData(); STATE.gsync_loaded=true; }
   if(id==='pbx' && !STATE.pbx.loaded){ loadPBXData(); loadPBXWalk(); STATE.pbx.loaded=true; }
+  if(id==='ssl' && !STATE.ssl.loaded){ loadSSLData(); STATE.ssl.loaded=true; }
   if(id==='helpdesk' && !STATE.helpdesk.loaded){ loadHelpdeskTickets(); STATE.helpdesk.loaded=true; }
 }
 
@@ -1974,8 +2036,95 @@ function submitTicket(){
   const body={name:document.getElementById('h-name').value, email:document.getElementById('h-email').value, subject:document.getElementById('h-subject').value, message:document.getElementById('h-message').value};
   fetch('/api/helpdesk/tickets',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>r.json()).then(data=>{ toast('Ticket created','ok'); document.getElementById('helpdesk-create').style.display='none'; loadHelpdeskTickets(); }).catch(()=> toast('Create failed','warn'));
 }
+/* ═════════════════════════════════ SSL / CERTIFICATES ══════════════════════════ */
+
+async function loadSSLData(){
+  try {
+    const [certRes, respRes] = await Promise.all([
+      fetch('/api/ssl/certs'), fetch('/api/ssl/response')
+    ]);
+    const certs = await certRes.json();
+    const response = await respRes.json();
+    STATE.ssl.certs = certs;
+    STATE.ssl.response = response;
+    renderSSLCerts(certs);
+    renderSSLResponse(response);
+    renderSSLTimeline(certs);
+    const ok = certs.filter(c=>c.status==='ok').length;
+    const warn = certs.filter(c=>c.status==='warn').length;
+    const crit = certs.filter(c=>c.status==='critical').length;
+    const down = response.filter(r=>r.status==='down').length;
+    document.getElementById('ssl-total').textContent = certs.length+' domains';
+    document.getElementById('ssl-ok').textContent = ok+' OK';
+    document.getElementById('ssl-warn').textContent = warn+' expiring';
+    document.getElementById('ssl-critical').textContent = crit+' expired';
+    document.getElementById('ssl-down').textContent = down+' down';
+    addEvent('ssl','ok','🔒','SSL data loaded — '+certs.length+' domains monitored');
+  } catch(e){
+    addEvent('ssl','warn','⚠️','SSL data load failed: '+e.message);
+  }
+}
+
+function renderSSLCerts(certs){
+  const tbody = document.getElementById('ssl-cert-table');
+  if(!certs || !certs.length){ tbody.innerHTML = '<tr><td colspan="6" style="color:var(--dim);padding:10px;text-align:center">No certificate data</td></tr>'; return; }
+  tbody.innerHTML = certs.map(c=>{
+    const clr = c.status==='ok' ? 'var(--ok)' : c.status==='warn' ? 'var(--warn)' : 'var(--err)';
+    const days = c.days_left < 0 ? 'EXPIRED '+Math.abs(c.days_left)+'d ago' : c.days_left+' days';
+    const san = (c.san||[]).join(', ');
+    return `<tr>
+      <td style="padding:5px 8px;color:var(--text)">${c.domain}</td>
+      <td style="padding:5px 8px;color:var(--dim)">${c.issuer||'—'}</td>
+      <td style="padding:5px 8px;color:var(--dim)">${(c.expires||'').split('T')[0]||'—'}</td>
+      <td style="padding:5px 8px;text-align:right;color:${clr}">${days}</td>
+      <td style="padding:5px 8px;text-align:center"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${clr}"></span></td>
+      <td style="padding:5px 8px;color:var(--dim);font-size:.72rem">${san}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderSSLResponse(resp){
+  const box = document.getElementById('ssl-response-list');
+  if(!resp || !resp.length){ box.innerHTML = '<span style="color:var(--dim)">No response data</span>'; return; }
+  const maxMs = Math.max(...resp.map(r=>r.ms), 200);
+  box.innerHTML = resp.map(r=>{
+    const clr = r.status==='ok' ? 'var(--ok)' : r.status==='warn' ? 'var(--warn)' : 'var(--err)';
+    const ms = r.status==='down' ? 'DOWN' : r.ms+' ms';
+    const pct = r.status==='down' ? 0 : Math.min(100, Math.round((r.ms/maxMs)*100));
+    return `<div style="display:flex;align-items:center;gap:10px;padding:4px 0;border-bottom:1px solid var(--border)">
+      <span style="width:140px;font-family:var(--mono);color:var(--text)">${r.domain}</span>
+      <div style="flex:1;height:6px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:${clr};border-radius:3px;transition:width .5s"></div>
+      </div>
+      <span style="width:70px;text-align:right;color:${clr};font-family:var(--mono);font-size:.76rem">${ms}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderSSLTimeline(certs){
+  const box = document.getElementById('ssl-timeline');
+  if(!certs || !certs.length){ box.innerHTML = '<span style="color:var(--dim)">No data</span>'; return; }
+  const sorted = [...certs].sort((a,b)=>new Date(a.expires)-new Date(b.expires));
+  const now = Date.now();
+  const maxRange = 365*24*60*60*1000; // 1 year
+  box.innerHTML = `<div style="display:flex;align-items:flex-end;gap:3px;height:120px;padding:10px 0;position:relative">
+    ${sorted.map(c=>{
+      const exp = new Date(c.expires).getTime();
+      const daysLeft = Math.round((exp-now)/(24*60*60*1000));
+      const clr = c.status==='ok' ? 'var(--ok)' : c.status==='warn' ? 'var(--warn)' : 'var(--err)';
+      const offset = Math.max(0, Math.min(100, Math.round(((exp-now)/maxRange)*100)));
+      const height = 20 + Math.min(80, Math.abs(daysLeft)/2);
+      return `<div style="display:flex;flex-direction:column;align-items:center;flex:1;min-width:60px" title="${c.domain}: ${daysLeft>0?daysLeft+' days left':'EXPIRED '+Math.abs(daysLeft)+'d ago'}">
+        <span style="font-size:.62rem;color:${clr};margin-bottom:2px;white-space:nowrap">${daysLeft>0?daysLeft+'d':Math.abs(daysLeft)+'d ago'}</span>
+        <div style="width:20px;height:${height}px;background:${clr};border-radius:3px 3px 0 0;opacity:.8"></div>
+        <span style="font-size:.55rem;color:var(--dim);margin-top:3px;max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.domain.replace('.k12.vi','')}</span>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
 /* ════ EVENTS / FEED ════ */
-const allEvents = { dc:[], ntp:[], logs:[], gsync:[], ubuntu:[], pbx:[], winagents:[] };
+const allEvents = { dc:[], ntp:[], logs:[], gsync:[], ubuntu:[], pbx:[], winagents:[], ssl:[] };
 function addEvent(feed, level, icon, msg){
   const time = new Date().toLocaleTimeString();
   allEvents[feed].unshift({level,icon,time,msg});

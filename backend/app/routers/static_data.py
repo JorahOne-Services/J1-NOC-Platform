@@ -117,3 +117,37 @@ def pbx_snmp_walk():
         {"host": "10.0.3.12", "oid": "1.3.6.1.4.1.1066.1.1.3", "description": "mitelRegFailures",
          "value": "3", "unit": "events", "timestamp": "2026-06-14 12:39:50", "status": "warn"},
     ]})
+
+
+# ── SSL / Certificate Monitoring ─────────────────────────────────────────────
+
+SSL_DOMAINS = [
+    {"domain": "noc-server.k12.vi", "issuer": "Let's Encrypt", "expires": "2026-09-15T00:00:00Z",
+     "days_left": 92, "status": "ok", "san": ["noc-server.k12.vi", "noc-server"]},
+    {"domain": "vide-k12.vi", "issuer": "Let's Encrypt", "expires": "2026-08-20T00:00:00Z",
+     "days_left": 66, "status": "ok", "san": ["vide.k12.vi", "www.vide.k12.vi"]},
+    {"domain": "dck12vi.vide.k12.vi", "issuer": "Let's Encrypt", "expires": "2026-07-01T00:00:00Z",
+     "days_left": 16, "status": "warn", "san": ["dck12vi.vide.k12.vi"]},
+    {"domain": "mail.vide.k12.vi", "issuer": "Let's Encrypt", "expires": "2026-12-10T00:00:00Z",
+     "days_left": 178, "status": "ok", "san": ["mail.vide.k12.vi"]},
+    {"domain": "vpn.vide.k12.vi", "issuer": "Self-Signed", "expires": "2025-12-01T00:00:00Z",
+     "days_left": -195, "status": "critical", "san": ["vpn.vide.k12.vi"]},
+]
+
+SSL_RESPONSE_TIMES = [
+    {"domain": "noc-server.k12.vi", "ms": 42, "status": "ok"},
+    {"domain": "vide.k12.vi", "ms": 88, "status": "ok"},
+    {"domain": "dck12vi.vide.k12.vi", "ms": 31, "status": "ok"},
+    {"domain": "mail.vide.k12.vi", "ms": 156, "status": "ok"},
+    {"domain": "vpn.vide.k12.vi", "ms": 0, "status": "down"},
+]
+
+
+@router.get('/ssl/certs')
+def ssl_certs():
+    return JSONResponse(SSL_DOMAINS)
+
+
+@router.get('/ssl/response')
+def ssl_response():
+    return JSONResponse(SSL_RESPONSE_TIMES)
