@@ -1496,9 +1496,9 @@ $output | ConvertTo-Json -Depth 3 | Out-File "C:\DC_Dashboard\ntp_status.json" -
 </div>
 
 <script>
-/* ════════════════════════════════════════════════
+/* ================================================
    GLOBALS & STATE
-════════════════════════════════════════════════ */
+================================================ */
 const STATE = {
   dc: { data:[], lastRunID:null, sortCol:-1, sortDir:1, charts:{} },
   ntp: { data:[], chart:null },
@@ -1521,7 +1521,7 @@ const REFRESH_INTERVALS = { dc:60, ntp:60, logs:30, ubuntu:60, gsync:120, pbx:60
 
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') }
 
-/* ════ TOASTS ════ */
+/* ==== TOASTS ==== */
 function toast(msg,type='info',ms=3200){
   const w=document.getElementById('toasts');
   const d=document.createElement('div');
@@ -1530,7 +1530,7 @@ function toast(msg,type='info',ms=3200){
   setTimeout(()=>d.remove(),ms);
 }
 
-/* ════ ALERT CONFIG ════ */
+/* ==== ALERT CONFIG ==== */
 const ALERT_COUNTS = { email:0, tg:0, teams:0 };
 const SESSION_START = Date.now();
 
@@ -1656,7 +1656,7 @@ function sendAlert(title, msg) {
   if(cfg.teams) { ALERT_COUNTS.teams++; updateAlertCounters(); }
 }
 
-/* ════ TABS ════ */
+/* ==== TABS ==== */
 function switchTab(id, btn){
   const activeId = id === 'voip' ? 'pbx' : id;
   document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
@@ -1673,7 +1673,7 @@ function switchTab(id, btn){
   if(id==='helpdesk' && !STATE.helpdesk.loaded){ loadHelpdeskTickets(); STATE.helpdesk.loaded=true; }
 }
 
-/* ═════════════════════════════════ WINDOWS AGENTS ══════════════════════════════ */
+/* ================================= WINDOWS AGENTS ============================== */
 
 STATE.winagents = { agents: [], loaded: false, sortCol: 0, sortAsc: true, selectedAgent: null };
 
@@ -1967,9 +1967,9 @@ function destroyChart(chart) {
 }
 
 
-/* ════ HELPDESK ════ */
+/* ==== HELPDESK ==== */
 
-/* ═════════════════════════════════ PBX / SIP ═════════════════════════════════ */
+/* ================================= PBX / SIP ================================= */
 async function loadPBXData() {
   try {
     const r = await fetch('/api/pbx/status');
@@ -2095,7 +2095,7 @@ function submitTicket(){
   const body={name:document.getElementById('h-name').value, email:document.getElementById('h-email').value, subject:document.getElementById('h-subject').value, message:document.getElementById('h-message').value};
   fetch('/api/helpdesk/tickets',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>r.json()).then(data=>{ toast('Ticket created','ok'); document.getElementById('helpdesk-create').style.display='none'; loadHelpdeskTickets(); }).catch(()=> toast('Create failed','warn'));
 }
-/* ═════════════════════════════════ SSL / CERTIFICATES ══════════════════════════ */
+/* ================================= SSL / CERTIFICATES ========================== */
 
 async function loadSSLData(){
   try {
@@ -2190,6 +2190,8 @@ function renderSSLTimeline(certs){
       </div>`;
     }).join('')}
   </div>`;
+}
+
 function renderSSLUptime(uptime){
   const box = document.getElementById('ssl-uptime-heatmap');
   if(!uptime || !Object.keys(uptime).length){ box.innerHTML = '<span style="color:var(--dim)">No uptime data</span>'; return; }
@@ -2237,7 +2239,7 @@ function updateBadge(id, count){
   else { b.classList.add('hidden'); }
 }
 
-/* ════ HEADER UPDATE ════ */
+/* ==== HEADER UPDATE ==== */
 function updateHeader(){
   const ok = STATE.dc.data.filter(d=>d.Status==='OK').length;
   const err = STATE.dc.data.filter(d=>d.Status==='ERROR').length;
@@ -2252,9 +2254,9 @@ function updateHeader(){
   document.getElementById('footer-summary').textContent = `${total} DCs • ${err} errors • Last scan: ${new Date().toLocaleTimeString()}`;
 }
 
-/* ════════════════════════════════════════════════
+/* ================================================
    TAB 1 — DC REPLICATION
-════════════════════════════════════════════════ */
+================================================ */
 function loadDCData(){
   const btn = document.getElementById('dc-tbody');
   fetch('dc_status.json?'+Date.now(),{cache:'no-store'})
@@ -2489,9 +2491,9 @@ function confirmReplAPI(idx){
 function closeModal(){ document.getElementById('dc-modal').classList.remove('open'); }
 document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
 
-/* ════════════════════════════════════════════════
+/* ================================================
    TAB 2 — NTP MONITOR
-════════════════════════════════════════════════ */
+================================================ */
 let ntpData = [];
 
 function loadNTPData(){
@@ -2607,9 +2609,9 @@ function loadNTPDemo(){
   document.getElementById('hdr-ntp-count').textContent=`NTP Clients: ${demo.length} (demo)`;
 }
 
-/* ════════════════════════════════════════════════
+/* ================================================
    TAB 3 — DNS BENCHMARK
-════════════════════════════════════════════════ */
+================================================ */
 let dnsResults = [];
 
 async function runDNSBenchmark(){
@@ -2697,9 +2699,9 @@ function buildDNSChart(){
   });
 }
 
-/* ════════════════════════════════════════════════
+/* ================================================
    TAB 4 — LOG VIEWER
-════════════════════════════════════════════════ */
+================================================ */
 const LOG_PATHS = {
   ck: { path:'C:\\ck-agent\\log\\ck-agent.txt', defaultUrl:'ck-agent.txt', label:'CK Agent (Sample-DC)' },
   gcds: { path:'C:\\tmp\\gcds-sample.log', defaultUrl:'gcds-sample.log', label:'GCDS Sync (192.0.2.10)' },
@@ -2809,9 +2811,9 @@ function analyzeLogsWithAI(){
   document.getElementById('chat-input').focus();
 }
 
-/* ════════════════════════════════════════════════
+/* ================================================
    TAB 5 — GOOGLE SYNC
-════════════════════════════════════════════════ */
+================================================ */
 function loadGSyncData(){ refreshGCDS(); refreshGPW(); }
 
 function refreshGCDS(){
@@ -2905,9 +2907,9 @@ function analyzeGPWLog(){
   document.getElementById('chat-input').value=`Analyze this Google Password Sync log and identify any issues:\n\n${mini}`;
 }
 
-/* ════════════════════════════════════════════════
+/* ================================================
    TAB 6 — UBUNTU SERVER
-════════════════════════════════════════════════ */
+================================================ */
 const CPU_HISTORY = [];
 
 function loadUbuntuData(){
@@ -3016,9 +3018,9 @@ function loadUbuntuDemo(){
   renderUbuntuData({cpu,ram,disk,cores:4,cpu_mhz:'2400',ram_used:(ram*0.64).toFixed(1),ram_total:'16',disk_used:(disk*0.5).toFixed(0),disk_total:'100',net_in:(Math.random()*5).toFixed(2),net_out:(Math.random()*2).toFixed(2),uptime:'14d 3h 22m',boot_time:'2026-05-07 05:00:00',processes:[{name:'ollama',cpu:'8.2',mem:'1240'},{name:'nginx',cpu:'0.5',mem:'48'},{name:'python3',cpu:'2.1',mem:'180'},{name:'postgres',cpu:'3.4',mem:'320'}]});
 }
 
-/* ════════════════════════════════════════════════
+/* ================================================
    TAB 7 — OLLAMA AI
-════════════════════════════════════════════════ */
+================================================ */
 function getOllamaConfig(){
   return {
     url: document.getElementById('ollama-url').value||'http://localhost:11434',
@@ -3179,9 +3181,9 @@ function scheduleAIAlerts(){
   toast('Daily AI digest scheduled (configure via cron for real scheduling)','warn',4000);
 }
 
-/* ════════════════════════════════════════════════
+/* ================================================
    TAB 8 — ADD MONITOR
-════════════════════════════════════════════════ */
+================================================ */
 function openTemplate(type){
   const form=document.getElementById('template-form');
   form.classList.add('visible');
@@ -3262,9 +3264,9 @@ function deleteMonitor(i){
   toast(`Monitor "${name}" removed`,'warn',2500);
 }
 
-/* ════════════════════════════════════════════════
+/* ================================================
    INIT & AUTO-REFRESH
-════════════════════════════════════════════════ */
+================================================ */
 function initRefreshTimers(){
   // DC: every 60s
   setInterval(loadDCData, REFRESH_INTERVALS.dc*1000);
