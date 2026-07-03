@@ -4,6 +4,10 @@ __pycache__/
 *.pyd
 node_modules/
 .env
+.env.*
+*.pem
+*.key
+*.crt
 test.db
 .pytest_cache
 __pycache__

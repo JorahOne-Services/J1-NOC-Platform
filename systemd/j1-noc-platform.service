@@ -1,0 +1,29 @@
+[Unit]
+Description=J1 NOC Platform (Docker Compose)
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/home/j1admin/J1-NOC-Platform
+Environment="PROJECT_DIR=/home/j1admin/J1-NOC-Platform"
+Environment="LIVE_ENV=/etc/j1-noc-platform/.env.live"
+
+# Load live secrets into systemd environment
+EnvironmentFile=/etc/j1-noc-platform/.env.live
+
+# On start: copy live env in, bring up compose, then scrub working .env
+ExecStartPre=/bin/bash -c 'cp /etc/j1-noc-platform/.env.live /home/j1admin/J1-NOC-Platform/.env'
+ExecStart=/usr/bin/docker compose up -d --build --remove-orphans
+ExecStartPost=/bin/bash -c 'cp /home/j1admin/J1-NOC-Platform/.env.example /home/j1admin/J1-NOC-Platform/.env'
+
+# On stop: stop containers, reset .env to safe template
+ExecStop=/usr/bin/docker compose down
+ExecStopPost=/bin/bash -c 'cp /home/j1admin/J1-NOC-Platform/.env.example /home/j1admin/J1-NOC-Platform/.env'
+
+User=root
+Group=root
+
+[Install]
+WantedBy=multi-user.target
