@@ -2,7 +2,26 @@
 
 **Version:** v11.0  
 **Status:** Production Ready  
-**Repository:** https://github.com/OneByJorah/J1-NOC-Platform
+**Repository:** https://github.com/JorahOne-Services/J1-NOC-Platform
+
+---
+
+## Quick Install
+
+Run this on a fresh Ubuntu/Debian server with sudo access:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/JorahOne-Services/J1-NOC-Platform/main/scripts/install.sh | bash
+```
+
+The installer will:
+1. Install Docker if it is missing
+2. Clone the repo into `/opt/j1-noc-platform`
+3. Start the Docker stack
+4. Ask you for an admin username and password
+5. Print the URL to open in your browser
+
+Then go to **Admin → Settings** and enter your live credentials. They are encrypted in the database — never committed to Git.
 
 ---
 
