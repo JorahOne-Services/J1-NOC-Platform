@@ -12,3 +12,7 @@ test.db
 .pytest_cache
 __pycache__
 backend/.venv/
+reports/
+*.bak
+*.sqlite
+backend/noc_local.db
