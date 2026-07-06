@@ -1,6 +1,4 @@
 # Changelog
-
-## 2026-06-13
-- Add backend foundation and API scaffolding
-- Add login + overview flows
-- Configure dev `.env` for local testing
+## [1.0.0] - 2026-07-05
+### Added
+- Initial release
