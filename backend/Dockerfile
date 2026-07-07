@@ -1,5 +1,5 @@
 # =============================================================================
-# J1-NOC-Platform Backend — FastAPI + Uvicorn
+# NexusCore Backend — FastAPI + Uvicorn
 # Tag convention: jorahone/jnop-backend:latest
 # =============================================================================
 FROM python:3.12-slim AS builder
@@ -46,7 +46,7 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --retries=5 --start-period=15s \
     CMD python /app/healthcheck.py
 
-LABEL org.opencontainers.image.title="J1-NOC-Platform Backend" \
+LABEL org.opencontainers.image.title="NexusCore Backend" \
       org.opencontainers.image.description="FastAPI backend for J1 NOC Platform" \
       org.opencontainers.image.vendor="JorahOne" \
       org.opencontainers.image.version="11.0.0"
