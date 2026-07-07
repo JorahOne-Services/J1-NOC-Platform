@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>J1 NOC Admin</title>
+<style>
+:root{--bg:#0a0e17;--card:#111827;--border:#1e293b;--text:#e2e8f0;--muted:#94a3b8;--accent:#3b82f6;--green:#22c55e;--red:#ef4444;--yellow:#eab308;--orange:#f97316}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+a{color:var(--accent);text-decoration:none}
+input,select,button{font:inherit;width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--text);outline:none;transition:border-color .2s}
+input:focus,select:focus{border-color:var(--accent)}
+button{cursor:pointer;font-weight:600;border:none;background:var(--accent);color:#fff;padding:12px 20px;border-radius:8px;transition:opacity .2s;width:auto;display:inline-flex;align-items:center;gap:8px}
+button:hover{opacity:.85}
+button:disabled{opacity:.4;cursor:not-allowed}
+button.danger{background:var(--red)}
+button.success{background:var(--green)}
+button.outline{background:transparent;border:1px solid var(--border)}
+.btn-sm{padding:6px 12px;font-size:.85rem}
+.hidden{display:none!important}
+.container{max-width:1200px;margin:0 auto;padding:20px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:16px}
+.card h2{font-size:1.1rem;margin-bottom:16px;color:var(--text)}
+.grid{display:grid;gap:16px}
+.grid-2{grid-template-columns:1fr 1fr}
+.grid-3{grid-template-columns:1fr 1fr 1fr}
+.grid-4{grid-template-columns:repeat(auto-fill,minmax(250px,1fr))}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;font-size:.8rem;font-weight:600}
+.badge-green{background:#166534;color:var(--green)}
+.badge-red{background:#7f1d1d;color:var(--red)}
+.badge-yellow{background:#713f12;color:var(--yellow)}
+table{width:100%;border-collapse:collapse}
+th,td{text-align:left;padding:12px 8px;border-bottom:1px solid var(--border)}
+th{color:var(--muted);font-weight:600;font-size:.85rem;text-transform:uppercase;letter-spacing:.5px}
+tr:hover td{background:#1a1f2e}
+.status-dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:8px}
+.status-dot.up{background:var(--green)}
+.status-dot.down{background:var(--red)}
+.status-dot.warning{background:var(--yellow)}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:1000}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:32px;max-width:500px;width:90%;max-height:90vh;overflow-y:auto}
+.modal h3{margin-bottom:20px;font-size:1.2rem}
+.form-group{margin-bottom:16px}
+.form-group label{display:block;font-size:.85rem;color:var(--muted);margin-bottom:6px;font-weight:600}
+.form-row{display:flex;gap:12px}
+.toast{position:fixed;top:20px;right:20px;padding:14px 24px;border-radius:8px;z-index:9999;font-weight:600;animation:slideIn .3s;max-width:400px}
+.toast.success{background:#166534;border:1px solid var(--green)}
+.toast.error{background:#7f1d1d;border:1px solid var(--red)}
+.toast.info{background:#1e3a5f;border:1px solid var(--accent)}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+/* Login */
+.login-page{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+.login-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:40px;width:100%;max-width:400px}
+.login-card h1{font-size:1.5rem;margin-bottom:8px;text-align:center}
+.login-card p{color:var(--muted);text-align:center;margin-bottom:24px;font-size:.9rem}
+.login-card .logo{font-size:2.5rem;text-align:center;margin-bottom:16px}
+/* Nav */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 24px;background:var(--card);border-bottom:1px solid var(--border)}
+.topbar .brand{font-weight:700;font-size:1.1rem;display:flex;align-items:center;gap:8px}
+.topbar .brand span{color:var(--accent)}
+.topbar .user-info{display:flex;align-items:center;gap:12px;font-size:.85rem;color:var(--muted)}
+.topbar .user-info .uname{color:var(--text);font-weight:600}
+/* Tab nav */
+.tab-nav{display:flex;gap:4px;padding:16px 24px 0;border-bottom:1px solid var(--border);overflow-x:auto}
+.tab-nav button{background:transparent;color:var(--muted);border:1px solid transparent;border-bottom:none;padding:12px 20px;font-size:.85rem;font-weight:600;width:auto;border-radius:8px 8px 0 0}
+.tab-nav button.active{color:var(--accent);background:var(--card);border-color:var(--border)}
+.tab-nav button:hover{color:var(--text)}
+/* Content */
+.content{padding:24px}
+.credential-item,.integration-item{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:#0f172a;border:1px solid var(--border);border-radius:8px;margin-bottom:8px}
+.credential-item .info,.integration-item .info{flex:1}
+.credential-item .key{font-weight:600;font-size:.9rem}
+.credential-item .meta{font-size:.8rem;color:var(--muted);margin-top:2px}
+.credential-item .value{font-family:monospace;color:var(--accent);font-size:.9rem}
+.credential-item .actions,.integration-item .actions{display:flex;gap:8px}
+/* Toggle */
+.toggle{position:relative;display:inline-block;width:44px;height:24px}
+.toggle input{opacity:0;width:0;height:0}
+.toggle .slider{position:absolute;cursor:pointer;inset:0;background:var(--border);border-radius:24px;transition:.3s}
+.toggle .slider::before{content:"";position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s}
+.toggle input:checked+.slider{background:var(--green)}
+.toggle input:checked+.slider::before{transform:translateX(20px)}
+/* Setup wizard */
+.setup-wizard{max-width:600px;margin:40px auto}
+.setup-wizard .step{font-size:.8rem;color:var(--muted);margin-bottom:8px}
+.setup-wizard h2{margin-bottom:8px}
+.setup-wizard p{color:var(--muted);margin-bottom:20px}
+.setup-progress{display:flex;gap:8px;margin-bottom:24px}
+.setup-progress .bar{flex:1;height:4px;background:var(--border);border-radius:2px}
+.setup-progress .bar.active{background:var(--accent)}
+.setup-progress .bar.done{background:var(--green)}
+@media(max-width:768px){.grid-2{grid-template-columns:1fr}.grid-3{grid-template-columns:1fr}}
+.loading{text-align:center;padding:40px;color:var(--muted)}
+.spinner{display:inline-block;width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty-state{text-align:center;padding:40px;color:var(--muted)}
+.empty-state .icon{font-size:3rem;margin-bottom:12px}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const API_BASE = '';
+const SESSION_KEY = 'jnop_admin_session';
+
+function showToast(msg, type='info') {
+  const t = document.getElementById('toast-container') || (() => {
+    const c = document.createElement('div'); c.id = 'toast-container'; c.style.cssText = 'position:fixed;top:20px;right:20px;z-index:9999';
+    document.body.appendChild(c); return c;
+  })();
+  const el = document.createElement('div'); el.className = `toast ${type}`; el.textContent = msg;
+  t.appendChild(el);
+  setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity .3s'; setTimeout(() => el.remove(), 300); }, 4000);
+}
+
+async function api(method, path, body) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  const sess = JSON.parse(localStorage.getItem(SESSION_KEY) || '{}');
+  if (sess.token) opts.headers['Authorization'] = `Bearer ${sess.token}`;
+  if (body) opts.body = JSON.stringify(body);
+  try {
+    const r = await fetch(`${API_BASE}${path}`, opts);
+    if (r.status === 401 || r.status === 403) { localStorage.removeItem(SESSION_KEY); render(); return null; }
+    return await r.json();
+  } catch(e) { showToast(`Network error: ${e.message}`, 'error'); return null; }
+}
+
+function getSession() { return JSON.parse(localStorage.getItem(SESSION_KEY) || '{}'); }
+
+function esc(str) { const d = document.createElement('div'); d.textContent = str||''; return d.innerHTML; }
+
+function render() {
+  const app = document.getElementById('app');
+  const sess = getSession();
+  if (!sess.token) { renderLogin(app); return; }
+  renderDashboard(app, sess);
+}
+
+/* ─── LOGIN PAGE ─── */
+function renderLogin(app) {
+  app.innerHTML = `
+  <div class="login-page">
+    <div class="login-card">
+      <div class="logo">🛡️</div>
+      <h1>J1 NOC Admin</h1>
+      <p>Sign in to manage your platform</p>
+      <form id="loginForm">
+        <div class="form-group">
+          <label>Username</label>
+          <input type="text" id="loginUser" placeholder="admin" required autofocus>
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="loginPass" placeholder="••••••••" required>
+        </div>
+        <button type="submit" id="loginBtn" style="width:100%;justify-content:center">Sign In</button>
+      </form>
+    </div>
+  </div>`;
+  document.getElementById('loginForm').onsubmit = async (e) => {
+    e.preventDefault(); const btn = document.getElementById('loginBtn');
+    btn.disabled = true; btn.textContent = 'Signing in...';
+    const r = await api('POST', '/api/auth/login', { username: document.getElementById('loginUser').value, password: document.getElementById('loginPass').value });
+    btn.disabled = false; btn.textContent = 'Sign In';
+    if (r && r.ok) {
+      localStorage.setItem(SESSION_KEY, JSON.stringify({ token: r.token, user: r.user }));
+      showToast('Welcome back!', 'success'); render();
+    } else { showToast(r?.error === 'invalid' ? 'Invalid credentials' : 'Login failed', 'error'); }
+  };
+}
+
+/* ─── DASHBOARD LAYOUT ─── */
+function renderDashboard(app, sess) {
+  let activeTab = 'overview';
+  app.innerHTML = `
+  <div class="topbar">
+    <div class="brand">🛡️ <span>J1 NOC</span> Admin</div>
+    <div class="user-info">
+      <span class="uname">${esc(sess.user?.username)}</span>
+      <span class="badge badge-green">${esc(sess.user?.role)}</span>
+      <button class="btn-sm outline" onclick="doLogout()">Sign Out</button>
+    </div>
+  </div>
+  <div class="tab-nav" id="tabNav">
+    <button data-tab="overview" class="active">📊 Overview</button>
+    <button data-tab="credentials">🔑 Credentials</button>
+    <button data-tab="integrations">🔌 Integrations</button>
+    <button data-tab="users">👥 Users</button>
+    <button data-tab="settings">⚙️ Settings</button>
+  </div>
+  <div class="content" id="tabContent">
+    <div class="loading"><div class="spinner"></div></div>
+  </div>
+  <div style="display:none" id="modalContainer"></div>`;
+  
+  document.getElementById('tabNav').addEventListener('click', e => {
+    const btn = e.target.closest('[data-tab]');
+    if (!btn) return;
+    document.querySelectorAll('#tabNav [data-tab]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active'); activeTab = btn.dataset.tab; loadTab(activeTab);
+  });
+  loadTab('overview');
+  window.doLogout = () => { localStorage.removeItem(SESSION_KEY); render(); showToast('Signed out', 'info'); };
+}
+
+async function loadTab(tab) {
+  const c = document.getElementById('tabContent');
+  c.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  try { await ({ overview: loadOverview, credentials: loadCredentials, integrations: loadIntegrations, users: loadUsers, settings: loadSettings }[tab]?.(c)) || (c.innerHTML = '<div class="empty-state"><div class="icon">📄</div><p>Page not found</p></div>'); } 
+  catch(e) { c.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>Error loading: ${e.message}</p></div>`; }
+}
+
+/* ─── OVERVIEW TAB ─── */
+async function loadOverview(c) {
+  const health = await api('GET', '/api/admin/system/health');
+  const setup = await api('GET', '/api/admin/setup/status');
+  const users = await api('GET', '/api/admin/users');
+  if (!health) { c.innerHTML = '<div class="empty-state"><div class="icon">⚠️</div><p>Could not fetch system health</p></div>'; return; }
+  const containerCount = health.docker?.length || 0;
+  const healthyCount = health.docker?.filter(d => d.status?.includes('healthy') || d.status?.includes('Up')).length || 0;
+  c.innerHTML = `
+  <div class="grid grid-4" style="margin-bottom:24px">
+    <div class="card"><h2>🟢 Containers</h2><div style="font-size:2rem;font-weight:700">${healthyCount}/${containerCount}</div><div style="font-size:.85rem;color:var(--muted)">healthy</div></div>
+    <div class="card"><h2>👥 Users</h2><div style="font-size:2rem;font-weight:700">${users?.users?.length || 0}</div><div style="font-size:.85rem;color:var(--muted)">registered</div></div>
+    <div class="card"><h2>✅ Setup</h2><div style="font-size:2rem;font-weight:700">${setup?.setup_complete ? 'Complete' : 'Pending'}</div><div style="font-size:.85rem;color:var(--muted)">${setup?.configured ? 'configured' : 'not configured'}</div></div>
+    <div class="card"><h2>🛡️ Service</h2><div style="font-size:2rem;font-weight:700">${health.status||'unknown'}</div><div style="font-size:.85rem;color:var(--muted)">v${health.version||'?'}</div></div>
+  </div>
+  <div class="card">
+    <h2>Docker Containers</h2>
+    <table id="healthTable"><thead><tr><th>Name</th><th>Status</th><th>Image</th></tr></thead><tbody>
+      ${(health.docker||[]).map(d => `<tr><td>${esc(d.name)}</td><td><span class="status-dot ${d.status?.includes('healthy')||d.status?.includes('Up')?'up':'down'}"></span>${esc(d.status)}</td><td style="color:var(--muted);font-size:.85rem">${esc(d.image)}</td></tr>`).join('')}
+    </tbody></table>
+  </div>
+  <div class="card">
+    <h2>Quick Actions</h2>
+    <div style="display:flex;gap:12px;flex-wrap:wrap">
+      <button onclick="navigateTab('credentials')">🔑 Manage Credentials</button>
+      <button onclick="navigateTab('integrations')">🔌 Configure Integrations</button>
+      <button onclick="navigateTab('users')">👥 Manage Users</button>
+    </div>
+  </div>`;
+  window.navigateTab = (t) => { 
+    document.querySelectorAll('#tabNav [data-tab]').forEach(b => b.classList.remove('active'));
+    const btn = document.querySelector(`#tabNav [data-tab="${t}"]`);
+    if(btn) btn.classList.add('active');
+    loadTab(t);
+  };
+}
+
+/* ─── CREDENTIALS TAB ─── */
+async function loadCredentials(c) {
+  const [schemaRes, credsRes] = await Promise.all([api('GET', '/api/admin/credentials/schema'), api('GET', '/api/admin/credentials')]);
+  const schema = schemaRes?.credentials || [];
+  const creds = credsRes?.credentials || [];
+  const credMap = {};
+  creds.forEach(cr => credMap[cr.key] = cr);
+  const cats = [...new Set(schema.map(s => s.category))];
+  c.innerHTML = `
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+    <h2 style="font-size:1.2rem">🔑 Service Credentials</h2>
+    <button onclick="exportCreds()">📥 Export .env</button>
+  </div>
+  ${cats.map(cat => `
+  <div class="card">
+    <h2 style="text-transform:capitalize">${esc(cat)}</h2>
+    ${schema.filter(s => s.category === cat).map(s => {
+      const cr = credMap[s.key] || {};
+      return `<div class="credential-item">
+        <div class="info">
+          <div class="key">${esc(s.label)}</div>
+          <div class="meta">${esc(s.key)}${s.secret ? ' • secret' : ''}</div>
+        </div>
+        <div class="value" id="val_${esc(s.key)}">${cr.has_value ? esc(cr.value) : '<span style="color:var(--orange);font-weight:600">Not set</span>'}</div>
+        <div class="actions">
+          <button class="btn-sm" onclick="editCred('${esc(s.key)}','${esc(s.label)}',${s.secret})">✏️</button>
+        </div>
+      </div>`;
+    }).join('')}
+  </div>`).join('')}`;
+  window.editCred = (key, label, secret) => showCredModal(key, label, secret);
+  window.exportCreds = async () => {
+    const r = await fetch('/api/admin/credentials/export');
+    const text = await r.text();
+    const blob = new Blob([text], { type: 'text/plain' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = '.env.live'; a.click();
+    showToast('Credentials exported', 'success');
+  };
+}
+
+function showCredModal(key, label, secret) {
+  const existing = document.getElementById('modalContainer');
+  existing.style.display = 'block';
+  existing.innerHTML = `
+  <div class="modal-overlay" onclick="closeModal(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+      <h3>✏️ ${esc(label)}</h3>
+      <div class="form-group">
+        <label>${esc(key)}</label>
+        <input type="${secret?'password':'text'}" id="credValue" placeholder="Enter value...">
+      </div>
+      <div style="display:flex;gap:12px;justify-content:flex-end">
+        <button class="outline" onclick="closeModal()">Cancel</button>
+        <button onclick="saveCred('${esc(key)}')">Save</button>
+      </div>
+    </div>
+  </div>`;
+  window.closeModal = (e) => { if(!e || e.target.classList.contains('modal-overlay')) { existing.style.display = 'none'; existing.innerHTML = ''; } };
+  window.saveCred = async (k) => {
+    const val = document.getElementById('credValue').value;
+    if (!val) { showToast('Value cannot be empty', 'error'); return; }
+    const r = await api('POST', '/api/admin/credentials', { credentials: [{ key: k, value: val }] });
+    if (r) { showToast(`${label} updated`, 'success'); closeModal(); loadTab('credentials'); }
+  };
+}
+
+/* ─── INTEGRATIONS TAB ─── */
+async function loadIntegrations(c) {
+  const ints = await api('GET', '/api/admin/integrations');
+  const list = ints?.integrations || [];
+  c.innerHTML = `
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+    <h2 style="font-size:1.2rem">🔌 Service Integrations</h2>
+    <button onclick="showAddIntegration()">+ Add Integration</button>
+  </div>
+  <div class="card">
+    ${list.length ? list.map(i => `
+    <div class="integration-item">
+      <div class="info">
+        <div class="key" style="display:flex;align-items:center;gap:8px">
+          ${esc(i.name)}
+          <span class="badge ${i.is_active?'badge-green':'badge-yellow'}">${i.is_active?'Active':'Inactive'}</span>
+        </div>
+        <div class="meta">${esc(i.platform)} ${i.base_url ? '| '+esc(i.base_url) : ''}</div>
+      </div>
+      <div class="actions">
+        <label class="toggle">
+          <input type="checkbox" ${i.is_active?'checked':''} onchange="toggleIntegration(${i.id}, this.checked)">
+          <span class="slider"></span>
+        </label>
+        <button class="btn-sm outline" onclick="editIntegration(${i.id})">✏️</button>
+        <button class="btn-sm danger" onclick="deleteIntegration(${i.id})">🗑️</button>
+      </div>
+    </div>`).join('') : '<div class="empty-state"><p>No integrations configured. Add one to get started.</p></div>'}
+  </div>`;
+  window.toggleIntegration = async (id, active) => { const r = await api('PUT', `/api/admin/integrations/${id}`, { is_active: active }); if(r) showToast(active?'Activated':'Deactivated', 'success'); };
+  window.editIntegration = async (id) => {
+    const i = list.find(x => x.id === id);
+    if (!i) return;
+    const c = document.getElementById('modalContainer'); c.style.display = 'block';
+    c.innerHTML = `
+    <div class="modal-overlay" onclick="if(event.target===this){c.style.display='none'}">
+      <div class="modal">
+        <h3>✏️ Edit Integration</h3>
+        <div class="form-group"><label>Name</label><input id="ei_name" value="${esc(i.name)}"></div>
+        <div class="form-group"><label>Platform</label><input id="ei_platform" value="${esc(i.platform)}"></div>
+        <div class="form-group"><label>Base URL</label><input id="ei_url" value="${esc(i.base_url||'')}"></div>
+        <div class="form-group"><label>API Key</label><input type="password" id="ei_key" placeholder="Leave empty to keep current"></div>
+        <div style="display:flex;gap:12px;justify-content:flex-end">
+          <button class="outline" onclick="document.getElementById('modalContainer').style.display='none'">Cancel</button>
+          <button onclick="saveIntegrationEdit(${id})">Save</button>
+        </div>
+      </div>
+    </div>`;
+  };
+  window.saveIntegrationEdit = async (id) => {
+    const payload = { name: document.getElementById('ei_name').value, platform: document.getElementById('ei_platform').value, base_url: document.getElementById('ei_url').value };
+    const key = document.getElementById('ei_key').value;
+    if (key) payload.api_key = key;
+    const r = await api('PUT', `/api/admin/integrations/${id}`, payload);
+    if (r) { showToast('Integration updated', 'success'); document.getElementById('modalContainer').style.display='none'; loadIntegrations(document.getElementById('tabContent')); }
+  };
+  window.deleteIntegration = async (id) => {
+    if (!confirm('Delete this integration?')) return;
+    const r = await api('DELETE', `/api/admin/integrations/${id}`);
+    if (r) { showToast('Deleted', 'info'); loadIntegrations(document.getElementById('tabContent')); }
+  };
+  window.showAddIntegration = () => {
+    const c = document.getElementById('modalContainer'); c.style.display = 'block';
+    c.innerHTML = `
+    <div class="modal-overlay" onclick="if(event.target===this){c.style.display='none'}">
+      <div class="modal">
+        <h3>➕ Add Integration</h3>
+        <div class="form-group"><label>Name</label><input id="ai_name" placeholder="My Service"></div>
+        <div class="form-group"><label>Platform</label>
+          <select id="ai_platform">
+            <option>osticket</option><option>zammad</option><option>email</option><option>telegram</option>
+            <option>teams</option><option>pagerduty</option><option>slack</option><option>wazuh</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Base URL</label><input id="ai_url" placeholder="https://..."></div>
+        <div class="form-group"><label>API Key</label><input type="password" id="ai_key" placeholder="..."></div>
+        <div style="display:flex;gap:12px;justify-content:flex-end">
+          <button class="outline" onclick="document.getElementById('modalContainer').style.display='none'">Cancel</button>
+          <button onclick="saveNewIntegration()">Create</button>
+        </div>
+      </div>
+    </div>`;
+  };
+  window.saveNewIntegration = async () => {
+    const r = await api('POST', '/api/admin/integrations', {
+      name: document.getElementById('ai_name').value, platform: document.getElementById('ai_platform').value,
+      base_url: document.getElementById('ai_url').value, api_key: document.getElementById('ai_key').value,
+    });
+    if (r) { showToast('Integration created', 'success'); document.getElementById('modalContainer').style.display='none'; loadIntegrations(document.getElementById('tabContent')); }
+  };
+}
+
+/* ─── USERS TAB ─── */
+async function loadUsers(c) {
+  const users = await api('GET', '/api/admin/users');
+  const list = users?.users || [];
+  c.innerHTML = `
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+    <h2 style="font-size:1.2rem">👥 Admin Users</h2>
+    <button onclick="showAddUser()">+ Add User</button>
+  </div>
+  <div class="card">
+    <table><thead><tr><th>Username</th><th>Full Name</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+      ${list.map(u => `<tr>
+        <td><strong>${esc(u.username)}</strong></td>
+        <td style="color:var(--muted)">${esc(u.full_name||'-')}</td>
+        <td><span class="badge ${u.role==='admin'?'badge-green':'badge-yellow'}">${esc(u.role)}</span></td>
+        <td>${u.is_active ? '<span style="color:var(--green)">Active</span>' : '<span style="color:var(--muted)">Inactive</span>'} ${u.is_locked ? '🔒' : ''}</td>
+        <td>
+          <button class="btn-sm outline" onclick="editUser(${u.id})">✏️</button>
+          ${u.username !== 'admin' ? `<button class="btn-sm danger" onclick="deleteUser(${u.id})">🗑️</button>` : ''}
+        </td>
+      </tr>`).join('')}
+    </tbody></table>
+  </div>`;
+  window.editUser = (id) => {
+    const u = list.find(x => x.id === id); if (!u) return;
+    const c = document.getElementById('modalContainer'); c.style.display = 'block';
+    c.innerHTML = `
+    <div class="modal-overlay" onclick="if(event.target===this){c.style.display='none'}">
+      <div class="modal">
+        <h3>✏️ Edit User</h3>
+        <div class="form-group"><label>Username</label><input id="eu_user" value="${esc(u.username)}"></div>
+        <div class="form-group"><label>Full Name</label><input id="eu_name" value="${esc(u.full_name||'')}"></div>
+        <div class="form-group"><label>Email</label><input id="eu_email" value="${esc(u.email||'')}"></div>
+        <div class="form-group"><label>New Password (leave blank to keep)</label><input type="password" id="eu_pass" placeholder="..."></div>
+        <div class="form-row">
+          <div class="form-group" style="flex:1">
+            <label>Role</label>
+            <select id="eu_role"><option ${u.role==='admin'?'selected':''}>admin</option><option ${u.role==='user'?'selected':''}>user</option></select>
+          </div>
+          <div class="form-group" style="flex:1;display:flex;align-items:flex-end;gap:12px;padding-bottom:10px">
+            <label class="toggle" style="width:auto;display:flex;align-items:center;gap:8px">
+              <span style="font-size:.85rem;color:var(--muted)">Locked</span>
+              <input type="checkbox" ${u.is_locked?'checked':''} id="eu_locked">
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+        <div style="display:flex;gap:12px;justify-content:flex-end">
+          <button class="outline" onclick="document.getElementById('modalContainer').style.display='none'">Cancel</button>
+          <button onclick="saveUserEdit(${id})">Save</button>
+        </div>
+      </div>
+    </div>`;
+  };
+  window.saveUserEdit = async (id) => {
+    const payload = { username: document.getElementById('eu_user').value, full_name: document.getElementById('eu_name').value, email: document.getElementById('eu_email').value, role: document.getElementById('eu_role').value, is_locked: document.getElementById('eu_locked').checked };
+    const pass = document.getElementById('eu_pass').value;
+    if (pass) payload.password = pass;
+    const r = await api('PUT', `/api/admin/users/${id}`, payload);
+    if (r) { showToast('User updated', 'success'); document.getElementById('modalContainer').style.display='none'; loadUsers(document.getElementById('tabContent')); }
+  };
+  window.deleteUser = async (id) => {
+    if (!confirm('Delete this user?')) return;
+    const r = await api('DELETE', `/api/admin/users/${id}`);
+    if (r) { showToast('User deleted', 'info'); loadUsers(document.getElementById('tabContent')); }
+  };
+  window.showAddUser = () => {
+    const c = document.getElementById('modalContainer'); c.style.display = 'block';
+    c.innerHTML = `
+    <div class="modal-overlay" onclick="if(event.target===this){c.style.display='none'}">
+      <div class="modal">
+        <h3>➕ Add User</h3>
+        <div class="form-group"><label>Username</label><input id="au_user" placeholder="username"></div>
+        <div class="form-group"><label>Full Name</label><input id="au_name" placeholder="Full Name"></div>
+        <div class="form-group"><label>Email</label><input id="au_email" placeholder="email@example.com"></div>
+        <div class="form-group"><label>Password (min 8 chars)</label><input type="password" id="au_pass" placeholder="••••••••"></div>
+        <div class="form-group"><label>Role</label><select id="au_role"><option>user</option><option>admin</option></select></div>
+        <div style="display:flex;gap:12px;justify-content:flex-end">
+          <button class="outline" onclick="document.getElementById('modalContainer').style.display='none'">Cancel</button>
+          <button onclick="saveNewUser()">Create</button>
+        </div>
+      </div>
+    </div>`;
+  };
+  window.saveNewUser = async () => {
+    const p = document.getElementById('au_pass').value;
+    if (p.length < 8) { showToast('Password must be 8+ characters', 'error'); return; }
+    const r = await api('POST', '/api/admin/users', {
+      username: document.getElementById('au_user').value, full_name: document.getElementById('au_name').value,
+      email: document.getElementById('au_email').value, password: p, role: document.getElementById('au_role').value,
+    });
+    if (r) { showToast('User created', 'success'); document.getElementById('modalContainer').style.display='none'; loadUsers(document.getElementById('tabContent')); }
+  };
+}
+
+/* ─── SETTINGS TAB ─── */
+async function loadSettings(c) {
+  const [tenantRes, policyRes] = await Promise.all([api('GET', '/api/admin/tenants/current'), api('GET', '/api/admin/policy')]);
+  const tenant = tenantRes?.tenant || {};
+  const policy = policyRes?.policy || {};
+  c.innerHTML = `
+  <div class="card">
+    <h2>🏢 Branding</h2>
+    <div class="form-group"><label>Platform Name</label><input id="st_name" value="${esc(tenant.name||'J1 NOC Platform')}"></div>
+    <div class="form-group"><label>Primary Color</label><div class="form-row"><input id="st_color" value="${esc(tenant.primary_color||'#1a73e8')}" style="flex:1"><input type="color" id="st_color_picker" value="${esc(tenant.primary_color||'#1a73e8')}" style="width:48px;padding:4px;cursor:pointer"></div></div>
+    <button onclick="saveTenant()">Save Branding</button>
+  </div>
+  <div class="card">
+    <h2>🔒 Security Policy</h2>
+    <div class="form-group"><label>Minimum Password Length</label><input type="number" id="sp_min" value="${policy.password_min_length||8}" min="4" max="64"></div>
+    <div class="form-group"><label>Session Timeout (minutes)</label><input type="number" id="sp_timeout" value="${policy.session_timeout_minutes||60}" min="5" max="1440"></div>
+    <div class="form-group"><label>Max Login Attempts</label><input type="number" id="sp_attempts" value="${policy.max_login_attempts||5}" min="1" max="20"></div>
+    <button onclick="savePolicy()">Save Policy</button>
+  </div>
+  <div class="card">
+    <h2>🔄 Maintenance</h2>
+    <div style="display:flex;gap:12px;flex-wrap:wrap">
+      <button class="danger" onclick="resetSetup()">🔄 Reset Setup Wizard</button>
+      <button onclick="redeploy()">🚀 Trigger Re-deploy</button>
+    </div>
+  </div>`;
+  document.getElementById('st_color_picker')?.addEventListener('input', e => document.getElementById('st_color').value = e.target.value);
+  window.saveTenant = async () => {
+    const r = await api('PUT', '/api/admin/tenants/current', { name: document.getElementById('st_name').value, primary_color: document.getElementById('st_color').value });
+    if (r) showToast('Branding saved', 'success');
+  };
+  window.savePolicy = async () => {
+    const r = await api('PUT', '/api/admin/policy', { password_min_length: parseInt(document.getElementById('sp_min').value), session_timeout_minutes: parseInt(document.getElementById('sp_timeout').value), max_login_attempts: parseInt(document.getElementById('sp_attempts').value) });
+    if (r) showToast('Policy saved', 'success');
+  };
+  window.resetSetup = async () => {
+    if (!confirm('This will allow re-running the setup wizard. Continue?')) return;
+    showToast('Setup reset is manual — clear app_state in DB', 'info');
+  };
+  window.redeploy = async () => {
+    showToast('Run the deploy script on the server: sudo ./scripts/deploy.sh', 'info');
+  };
+}
+
+render();
+</script>
+</body>
+</html>

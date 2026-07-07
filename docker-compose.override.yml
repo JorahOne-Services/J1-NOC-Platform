@@ -3,10 +3,15 @@ services:
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
       - frontend_dist:/usr/share/nginx/html:ro
     ports:
+      - "80:80"
       - "5173:80"
       - "8443:443"
   frontend:
     image: j1-noc-platform-frontend:latest
-    build: {}
+    build: null
+  backend:
+    image: j1-noc-platform-backend:latest
+    build: null

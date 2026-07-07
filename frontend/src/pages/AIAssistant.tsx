@@ -19,7 +19,7 @@ export default function AIAssistant() {
     setLoading(true);
     setResponse('');
     try {
-      const res = await post('/ollama/chat', { model, prompt });
+      const res = await post<{ response?: string }>('/ollama/chat', { model, prompt });
       setResponse(res?.response || JSON.stringify(res, null, 2));
     } catch (e) {
       setResponse('AI chat failed: ' + e);

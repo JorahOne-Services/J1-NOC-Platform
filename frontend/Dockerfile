@@ -26,8 +26,15 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 # Create non-root user for nginx
 RUN addgroup --system --gid 1001 jnop && \
     adduser --system --uid 1001 --ingroup jnop --no-create-home jnop && \
-    chown -R jnop:jnop /usr/share/nginx/html /var/cache/nginx /var/run && \
-    chmod -R 755 /usr/share/nginx/html
+    chown -R jnop:jnop /usr/share/nginx/html /var/cache/nginx /tmp && \
+    chmod -R 755 /usr/share/nginx/html && \
+    chmod 1777 /tmp
+
+# nginx writes its pid file at startup; redirect it to /tmp so the non-root
+# user can write it (otherwise open("/run/nginx.pid") fails with EACCES and
+# the container crash-loops). Also drop the root-only `user` directive.
+RUN sed -i 's#/run/nginx.pid#/tmp/nginx.pid#g' /etc/nginx/nginx.conf && \
+    sed -i '/^user[[:space:]]/d' /etc/nginx/nginx.conf
 
 USER jnop
 

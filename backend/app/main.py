@@ -1,3 +1,4 @@
+import contextlib
 import json
 import logging
 import time
@@ -32,6 +33,9 @@ except Exception:  # pragma: no cover - degrade gracefully
     _admin = None
     _settings = None
 
+from .routers import integrations as _integrations
+from .scheduler import collector_loop
+
 settings = get_settings()
 configure_logging()
 logger = logging.getLogger(__name__)
@@ -41,7 +45,13 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     # Schema is managed exclusively via Alembic migrations (no create_all in app).
     # Run `alembic upgrade head` out-of-band or via the deploy script.
+    import asyncio
+
+    task = asyncio.create_task(collector_loop())
     yield
+    task.cancel()
+    with contextlib.suppress(asyncio.CancelledError):
+        await task
 
 
 async def prometheus_middleware(request: Request, call_next):
@@ -119,6 +129,9 @@ def create_app() -> FastAPI:
 
     if _settings is not None:
         app.include_router(_settings.router, prefix="/api")
+
+    if _integrations is not None:
+        app.include_router(_integrations.router, prefix="/api")
 
     return app
 

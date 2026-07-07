@@ -38,3 +38,10 @@
 .svc-status{font-size:12px;font-weight:600}
 .svc-status.up{color:var(--ok)}
 .svc-status.down{color:var(--err)}
+
+/* Vanilla card styling — keeps the 6-card Overview clean and readable */
+.card-title{font-size:12px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.card-value{font-size:32px;font-weight:700;line-height:1}
+.card{position:relative;overflow:hidden}
+.card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--primary)}
+.overview h1{font-size:24px;letter-spacing:1px;margin:0 0 12px}

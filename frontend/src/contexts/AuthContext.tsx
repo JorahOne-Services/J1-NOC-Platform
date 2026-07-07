@@ -25,8 +25,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     async function init() {
       if (token) {
         try {
-          const me = await get('/auth/me');
-          if (!cancelled) setUser({ username: me.username, role: me.role?.slug || me.role || 'reader' });
+          const me = await get<{ username: string; role: string | { slug: string } }>('/auth/me');
+          if (!cancelled) setUser({ username: me.username, role: typeof me.role === 'string' ? me.role : (me.role?.slug || 'reader') });
         } catch {
           if (!cancelled) { setToken(null); setUser(null) }
         }

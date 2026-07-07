@@ -17,3 +17,8 @@ backend/.venv/
 # Keep lockfiles for reproducible installs
 !frontend/pnpm-lock.yaml
 !uv.lock
+
+# --- never commit local/secret databases ---
+*.db
+*.sqlite
+*.sqlite3

@@ -37,8 +37,20 @@ docker compose exec -T backend alembic upgrade head || log "WARNING: alembic upg
 
 log "Waiting for backend health..."
 sleep 20
-if ! docker ps | grep -q "j1-noc-platform-backend-1.*healthy"; then
-  log "WARNING: backend not healthy yet — check docker logs j1-noc-platform-backend-1"
+if ! docker ps | grep -q "jnop-backend.*healthy"; then
+  log "WARNING: backend not healthy yet — check docker logs jnop-backend"
+fi
+
+log "Deploying admin dashboard to nginx volume..."
+ADMIN_SRC="$PROJECT_DIR/frontend/admin.html"
+ADMIN_DST="/var/lib/docker/volumes/jnop_frontend_dist/_data/admin"
+if [[ -f "$ADMIN_SRC" ]] && [[ -d "$(dirname "$ADMIN_DST")" ]]; then
+  mkdir -p "$ADMIN_DST"
+  cp "$ADMIN_SRC" "$ADMIN_DST/index.html"
+  chown -R 1000:1000 "$ADMIN_DST" 2>/dev/null || true
+  log "Admin dashboard deployed to $ADMIN_DST/index.html"
+else
+  log "WARNING: admin template or volume not found — skipping admin deploy"
 fi
 
 log "Resetting repo .env to safe template..."

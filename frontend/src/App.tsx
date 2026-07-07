@@ -20,8 +20,12 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/setup" element={<OnboardingPage />} />
+
+        {/* Public dashboard (no auth required) */}
+        <Route path="/" element={<DashboardHome />} />
+
+        {/* Protected area: admin + operator tabs */}
         <Route element={<RequireAuth><Layout /></RequireAuth>}>
-          <Route path="/" element={<DashboardHome />} />
           <Route path="/ldap" element={<LDAPTab />} />
           <Route path="/snmp" element={<SNMPTab />} />
           <Route path="/chrony" element={<ChronyTab />} />
@@ -31,7 +35,8 @@ export default function App() {
           <Route path="/ai" element={<AIAssistant />} />
           <Route path="/wazuh" element={<WazuhSIEM />} />
         </Route>
-        <Route path="*" element={<Navigate to="/login" replace />} />
+
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AuthProvider>
   );

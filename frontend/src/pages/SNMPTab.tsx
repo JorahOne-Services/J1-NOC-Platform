@@ -10,7 +10,7 @@ export default function SNMPTab() {
   const load = async () => {
     try {
       const data = await get('/pbx/status');
-      if (Array.isArray(data)) setRows(data);
+      if (Array.isArray(data)) setRows(data as Pbx[]);
     } catch {
       setRows([
         { host: '10.0.1.12', name: 'Mitel-MX-2500-A', model: 'MX 2500', status: 'healthy', uptime_pct: 99.2, active_calls: 175 },
@@ -21,7 +21,7 @@ export default function SNMPTab() {
   };
 
   const loadWalk = async () => {
-    try { setWalk(await get('/pbx/snmp/walk')); }
+    try { setWalk((await get('/pbx/snmp/walk')) as Record<string, unknown>); }
     catch { setWalk({ sysDescr: 'simulated', host: '10.0.1.12' }); }
   };
 

@@ -1,9 +1,12 @@
 import hashlib
 import json
+import os
 import secrets
 import sqlite3
+import subprocess
 from datetime import datetime, timedelta
 from typing import Any
+from cryptography.fernet import Fernet
 
 import uvicorn
 from fastapi import FastAPI, Response
@@ -11,6 +14,31 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 DB_PATH = "/srv/jnop/admin-service/admin.sqlite"
+# Encryption key derived from SECRET_KEY env var
+_ENCRYPTION_KEY = None
+
+def _get_cipher():
+    global _ENCRYPTION_KEY
+    if _ENCRYPTION_KEY is None:
+        raw = os.environ.get("SECRET_KEY", "change-me-in-production")
+        # Pad or truncate to 32 bytes for Fernet
+        raw = raw.ljust(32, 'Z')[:32]
+        import base64
+        _ENCRYPTION_KEY = Fernet(base64.urlsafe_b64encode(raw.encode()))
+    return _ENCRYPTION_KEY
+
+def encrypt_value(plaintext: str) -> str:
+    if not plaintext:
+        return ""
+    return _get_cipher().encrypt(plaintext.encode()).decode()
+
+def decrypt_value(ciphertext: str) -> str:
+    if not ciphertext:
+        return ""
+    try:
+        return _get_cipher().decrypt(ciphertext.encode()).decode()
+    except Exception:
+        return "[encrypted]"
 
 app = FastAPI(title="J1 NOC Admin Service", version="1.0.0")
 
@@ -619,6 +647,141 @@ def update_tenant(payload: dict[str, Any]):
     con.commit()
     con.close()
     return {"updated": True}
+
+
+# ─── Credential Management ────────────────────────────────────────────────
+
+CREDENTIAL_SCHEMA = [
+    {"key": "POSTGRES_USER", "label": "PostgreSQL Username", "category": "database", "secret": False},
+    {"key": "POSTGRES_PASSWORD", "label": "PostgreSQL Password", "category": "database", "secret": True},
+    {"key": "POSTGRES_DB", "label": "PostgreSQL Database", "category": "database", "secret": False},
+    {"key": "REDIS_PASSWORD", "label": "Redis Password", "category": "cache", "secret": True},
+    {"key": "SECRET_KEY", "label": "Application Secret Key", "category": "security", "secret": True},
+    {"key": "GRAFANA_ADMIN_PASSWORD", "label": "Grafana Admin Password", "category": "monitoring", "secret": True},
+    {"key": "MITEL_SNMP_HOST", "label": "Mitel SNMP Host", "category": "telephony", "secret": False},
+    {"key": "MITEL_SNMP_COMMUNITY", "label": "Mitel SNMP Community", "category": "telephony", "secret": True},
+    {"key": "OSTICKET_BASE_URL", "label": "osTicket URL", "category": "helpdesk", "secret": False},
+    {"key": "OSTICKET_API_KEY", "label": "osTicket API Key", "category": "helpdesk", "secret": True},
+    {"key": "LDAP_URL", "label": "LDAP Server URL", "category": "directory", "secret": False},
+    {"key": "LDAP_DOMAIN", "label": "LDAP Domain", "category": "directory", "secret": False},
+    {"key": "LDAP_BIND_DN", "label": "LDAP Bind DN", "category": "directory", "secret": False},
+    {"key": "LDAP_BIND_PASSWORD", "label": "LDAP Bind Password", "category": "directory", "secret": True},
+    {"key": "WAZUH_API_URL", "label": "Wazuh API URL", "category": "security", "secret": False},
+    {"key": "WAZUH_USERNAME", "label": "Wazuh Username", "category": "security", "secret": False},
+    {"key": "WAZUH_PASSWORD", "label": "Wazuh Password", "category": "security", "secret": True},
+    {"key": "TELEGRAM_BOT_TOKEN", "label": "Telegram Bot Token", "category": "notifications", "secret": True},
+    {"key": "TEAMS_WEBHOOK", "label": "Microsoft Teams Webhook", "category": "notifications", "secret": True},
+    {"key": "NOTIFY_SMTP_HOST", "label": "SMTP Host", "category": "notifications", "secret": False},
+    {"key": "NOTIFY_SMTP_USER", "label": "SMTP Username", "category": "notifications", "secret": False},
+    {"key": "NOTIFY_SMTP_PASSWORD", "label": "SMTP Password", "category": "notifications", "secret": True},
+]
+
+
+@app.get("/api/admin/credentials/schema")
+def get_credential_schema():
+    """Return the credential schema (labels, categories, secret flags)."""
+    return {"credentials": CREDENTIAL_SCHEMA}
+
+
+@app.get("/api/admin/credentials")
+def get_credentials():
+    """Return all credential values (secrets masked)."""
+    con = sqlite3.connect(DB_PATH)
+    cur = con.cursor()
+    cur.execute("SELECT key, value FROM app_state WHERE key LIKE 'cred_%'")
+    rows = cur.fetchall()
+    con.close()
+    stored = {r[0][5:]: r[1] for r in rows}
+    result = []
+    for cred in CREDENTIAL_SCHEMA:
+        k = cred["key"]
+        val = stored.get(k, "")
+        if val and cred["secret"]:
+            decrypted = decrypt_value(val)
+            display = decrypted[:4] + "••••" + decrypted[-4:] if len(decrypted) > 8 else "••••••••"
+            result.append({**cred, "value": display, "has_value": bool(val)})
+        else:
+            result.append({**cred, "value": decrypt_value(val) if val else "", "has_value": bool(val)})
+    return {"credentials": result}
+
+
+@app.post("/api/admin/credentials")
+def update_credentials(payload: dict[str, Any]):
+    """Update one or more credential values."""
+    con = sqlite3.connect(DB_PATH)
+    cur = con.cursor()
+    updated = []
+    items = payload.get("credentials", [payload]) if isinstance(payload, dict) else payload
+    for cred in items:
+        key = cred.get("key")
+        value = cred.get("value", "")
+        if not key:
+            continue
+        schema_keys = {c["key"]: c for c in CREDENTIAL_SCHEMA}
+        if key in schema_keys and schema_keys[key]["secret"]:
+            encrypted = encrypt_value(value)
+        else:
+            encrypted = value
+        cur.execute(
+            "INSERT OR REPLACE INTO app_state(key, value) VALUES(?,?)",
+            (f"cred_{key}", encrypted),
+        )
+        updated.append(key)
+    con.commit()
+    con.close()
+    return {"updated": updated}
+
+
+@app.get("/api/admin/credentials/export")
+def export_credentials():
+    """Export all credentials as a .env file content (for deploy script)."""
+    con = sqlite3.connect(DB_PATH)
+    cur = con.cursor()
+    cur.execute("SELECT key, value FROM app_state WHERE key LIKE 'cred_%'")
+    rows = cur.fetchall()
+    con.close()
+    lines = ["# J1 NOC Platform — Live Credentials", f"# Generated: {datetime.utcnow().isoformat()}", ""]
+    for cred in CREDENTIAL_SCHEMA:
+        k = cred["key"]
+        stored = next((r[1] for r in rows if r[0] == f"cred_{k}"), "")
+        if stored:
+            val = decrypt_value(stored) if cred["secret"] else stored
+            val = val.replace("'", "'\\''")
+            lines.append(f"{k}={chr(39)}{val}{chr(39)}")
+        else:
+            lines.append(f"#{k}=")
+    return Response(content="\n".join(lines), media_type="text/plain")
+
+
+# ─── System Health ────────────────────────────────────────────────────────
+
+
+@app.get("/api/admin/system/health")
+def system_health():
+    """Return system health info."""
+    info = {
+        "service": "admin-service",
+        "version": "1.0.0",
+        "status": "healthy",
+        "uptime": datetime.utcnow().isoformat(),
+        "docker": [],
+    }
+    try:
+        result = subprocess.run(
+            ["docker", "ps", "--format", "{{.Names}}|{{.Status}}|{{.Image}}"],
+            capture_output=True, text=True, timeout=10,
+        )
+        for line in result.stdout.strip().split("\n"):
+            if "|" in line:
+                parts = line.split("|")
+                info["docker"].append({
+                    "name": parts[0],
+                    "status": parts[1],
+                    "image": parts[2] if len(parts) > 2 else "",
+                })
+    except Exception:
+        info["docker"] = [{"name": "error", "status": "cannot query Docker"}]
+    return info
 
 
 if __name__ == "__main__":

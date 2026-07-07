@@ -1,0 +1,23 @@
+# Gitleaks configuration for J1 NOC Platform.
+# Whitelists non-secret fixtures so CI doesn't false-positive on example data.
+title = "J1 NOC Platform"
+
+[extend]
+# Start from the community defaults (AWS, GitHub, private keys, JWT, etc.)
+useDefault = true
+
+[allowlist]
+# Repo-relative paths whose contents are intentionally non-secret.
+paths = [
+  '''.env\.example''',
+  '''\.env\.example''',
+  '''backend/\.env\.example''',
+  '''docs/''',
+  '''README\.md''',
+  '''\*\*/fixtures/\*''',
+  '''\*\*/test_.*\.py''',
+]
+# Example/test strings that look like secrets but are safe.
+regexes = [
+  '''(?i)(example|change-me|localhost|public|sk_live_[A-Za-z0-9]{0,3}\.\.\.)''',
+]

@@ -50,3 +50,6 @@ LABEL org.opencontainers.image.title="J1-NOC-Platform Backend" \
       org.opencontainers.image.description="FastAPI backend for J1 NOC Platform" \
       org.opencontainers.image.vendor="JorahOne" \
       org.opencontainers.image.version="11.0.0"
+
+# Run the FastAPI app (host 0.0.0.0 so the compose nginx proxy can reach it)
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

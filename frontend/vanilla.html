@@ -1,0 +1,2709 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NOC Operations Platform | v11.0</title>
+<script src="/chart.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600;700&display=swap');
+
+:root{
+  --primary:#00f3ff;--secondary:#ff00c8;--bg:#060615;--surface:#0c0c28;
+  --card:rgba(10,10,35,0.92);--text:#e0e0ff;--dim:rgba(224,224,255,0.55);
+  --ok:#00ff9d;--warn:#ffcc00;--err:#ff3860;--info:#4d9fff;
+  --border:rgba(0,243,255,0.15);--border-e:rgba(255,56,96,0.3);
+  --mono:'Share Tech Mono','Consolas',monospace;
+  --ui:'Rajdhani','Segoe UI',sans-serif;
+  --head:'Orbitron',var(--mono);
+}
+
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+
+html{scroll-behavior:smooth}
+
+body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:15px;min-height:100vh;overflow-x:hidden;line-height:1.5}
+
+/* BG */
+
+.bg-grid{position:fixed;inset:0;background-image:linear-gradient(rgba(0,243,255,0.03)1px,transparent 1px),linear-gradient(90deg,rgba(0,243,255,0.03)1px,transparent 1px);background-size:48px 48px;animation:gridMove 30s linear infinite;z-index:0;pointer-events:none}
+
+@keyframes gridMove{from{transform:translate(0,0)}to{transform:translate(48px,48px)}}
+
+.corner{position:fixed;width:50px;height:50px;pointer-events:none;z-index:1}
+
+.corner--tl{top:8px;left:8px;border-top:2px solid var(--primary);border-left:2px solid var(--primary)}
+
+.corner--tr{top:8px;right:8px;border-top:2px solid var(--secondary);border-right:2px solid var(--secondary)}
+
+.corner--bl{bottom:8px;left:8px;border-bottom:2px solid var(--primary);border-left:2px solid var(--primary)}
+
+.corner--br{bottom:8px;right:8px;border-bottom:2px solid var(--secondary);border-right:2px solid var(--secondary)}
+
+/* LAYOUT */
+
+.wrap{position:relative;z-index:2;max-width:1800px;margin:0 auto;padding:16px 14px 50px}
+
+/* HEADER */
+
+header{text-align:center;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+
+.title-row{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap}
+
+.logo-icon{font-size:1.8rem;filter:drop-shadow(0 0 8px var(--primary));animation:iconPulse 3s ease-in-out infinite}
+
+@keyframes iconPulse{0%,100%{filter:drop-shadow(0 0 8px var(--primary))}50%{filter:drop-shadow(0 0 18px var(--primary))}}
+
+.glitch{display:inline-block;font-family:var(--head);font-size:clamp(1rem,3vw,1.7rem);font-weight:900;letter-spacing:0.12em;text-transform:uppercase;color:#fff;position:relative;text-shadow:0 0 8px var(--primary);animation:glitchBase 8s infinite}
+
+.glitch::before,.glitch::after{content:attr(data-text);position:absolute;top:0;left:0;width:100%;height:100%;opacity:0}
+
+.glitch::before{color:var(--secondary);animation:glitchBefore 8s infinite}
+
+.glitch::after{color:var(--primary);animation:glitchAfter 8s infinite}
+
+@keyframes glitchBase{0%,88%,100%{text-shadow:0 0 8px var(--primary)}89%{text-shadow:-2px 0 var(--secondary),2px 0 var(--primary)}}
+
+@keyframes glitchBefore{0%,87%,100%{opacity:0}88%{opacity:.6;transform:translate(-3px,1px);clip-path:polygon(0 5%,100% 5%,100% 40%,0 40%)}91%{opacity:0}}
+
+@keyframes glitchAfter{0%,90%,100%{opacity:0}91%{opacity:.6;transform:translate(3px,-1px);clip-path:polygon(0 55%,100% 55%,100% 82%,0 82%)}94%{opacity:0}}
+
+.ver{font-family:var(--mono);font-size:.6rem;color:var(--secondary);border:1px solid var(--secondary);padding:2px 6px;border-radius:20px;align-self:flex-start;margin-top:4px}
+
+.hdr-meta{display:flex;justify-content:center;gap:20px;margin-top:8px;flex-wrap:wrap;font-family:var(--mono);font-size:.76rem;color:var(--dim)}
+
+.hdr-meta span{color:var(--text)}
+
+.sdot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:5px;background:var(--ok);box-shadow:0 0 6px var(--ok);vertical-align:middle}
+
+.sdot.err{background:var(--err);box-shadow:0 0 6px var(--err)}
+
+.sdot.warn{background:var(--warn);box-shadow:0 0 6px var(--warn)}
+
+/* NOTIFICATION COMEDY BAR */
+
+.notif-bar{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:0;margin-bottom:14px;backdrop-filter:blur(8px);overflow:hidden}
+
+.notif-stats{display:flex;gap:0;flex-wrap:wrap}
+
+.notif-stat{flex:1;min-width:160px;padding:12px 16px;border-right:1px solid var(--border);position:relative;cursor:default;transition:background .2s}
+
+.notif-stat:last-of-type{border-right:none}
+
+.notif-stat:hover{background:rgba(0,243,255,0.04)}
+
+.ns-icon{font-size:1.4rem;display:block;margin-bottom:2px}
+
+.ns-count{font-family:var(--head);font-size:1.5rem;font-weight:900;line-height:1;display:block;transition:transform .15s ease}
+
+.ns-label{font-family:var(--mono);font-size:.62rem;color:var(--dim);letter-spacing:.06em;text-transform:uppercase;display:block;margin-top:2px}
+
+.ns-quip{font-family:var(--ui);font-size:.72rem;color:var(--dim);font-style:italic;display:block;margin-top:3px;line-height:1.3}
+
+.ns-email .ns-count{color:var(--info)}
+
+.ns-tg .ns-count{color:#29b6f6}
+
+.ns-teams .ns-count{color:#7c6af7}
+
+.ns-total .ns-count{color:var(--warn)}
+
+.notif-bar-footer{display:flex;align-items:center;justify-content:space-between;padding:7px 14px;border-top:1px solid var(--border);background:rgba(0,243,255,0.03)}
+
+.notif-channels{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+.ch-pill{display:flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-family:var(--mono);font-size:.68rem;border:1px solid;cursor:pointer;transition:all .2s;user-select:none}
+
+.ch-pill.active-email{border-color:rgba(77,159,255,0.5);background:rgba(77,159,255,0.1);color:var(--info)}
+
+.ch-pill.active-tg{border-color:rgba(41,182,246,0.5);background:rgba(41,182,246,0.1);color:#29b6f6}
+
+.ch-pill.active-teams{border-color:rgba(124,106,247,0.5);background:rgba(124,106,247,0.1);color:#7c6af7}
+
+.ch-pill.off{border-color:var(--border);background:transparent;color:var(--dim);opacity:.5}
+
+.ch-dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+
+.notif-bar-actions{display:flex;gap:6px;align-items:center}
+
+.cfg-toggle-btn{font-family:var(--mono);font-size:.68rem;padding:4px 10px;border-radius:5px;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--dim);transition:all .2s}
+
+.cfg-toggle-btn:hover{border-color:var(--primary);color:var(--primary);transform:none;box-shadow:none;background:transparent}
+
+/* HIDDEN CONFIG PANEL */
+
+.alert-config-panel{display:none;padding:12px 14px;border-top:1px solid var(--border);background:rgba(0,0,0,0.2);flex-wrap:wrap;gap:10px;align-items:center}
+
+.alert-config-panel.open{display:flex}
+
+.alert-bar label{font-family:var(--mono);font-size:.7rem;color:var(--dim);letter-spacing:.06em}
+
+.alert-bar input[type=text]{background:rgba(0,243,255,0.06);border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:4px;font-family:var(--mono);font-size:.72rem}
+
+.alert-bar input:focus{outline:none;border-color:var(--primary)}
+
+.ab-section{display:flex;align-items:center;gap:6px;border-right:1px solid var(--border);padding-right:10px;margin-right:0}
+
+.ab-section:last-child{border-right:none}
+
+.ab-toggle{width:32px;height:17px;background:rgba(255,255,255,0.1);border-radius:20px;position:relative;cursor:pointer;border:1px solid var(--border);transition:background .2s}
+
+.ab-toggle.on{background:rgba(0,255,157,0.25);border-color:var(--ok)}
+
+.ab-toggle::after{content:'';position:absolute;top:2px;left:2px;width:11px;height:11px;border-radius:50%;background:var(--dim);transition:transform .2s,background .2s}
+
+.ab-toggle.on::after{transform:translateX(15px);background:var(--ok)}
+
+/* TABS */
+
+.tab-nav-wrap{position:relative}
+
+.tab-nav{display:flex;gap:0;margin-bottom:16px;background:var(--card);border:1px solid var(--border);border-radius:10px;overflow-x:auto;overflow-y:hidden;scroll-behavior:smooth;scrollbar-width:thin}
+
+.tab-nav::-webkit-scrollbar{height:6px}
+
+.tab-nav::-webkit-scrollbar-thumb{background:rgba(0,243,255,0.25);border-radius:3px}
+
+.tab-nav-btn{position:absolute;top:0;bottom:0;width:32px;border:none;background:rgba(6,6,21,0.7);color:var(--text);cursor:pointer;z-index:2;font-size:1.1rem;display:none;align-items:center;justify-content:center}
+
+.tab-nav-btn.show{display:flex}
+
+.tab-nav-btn.prev{left:0;border-radius:10px 0 0 10px}
+
+.tab-nav-btn.next{right:0;border-radius:0 10px 10px 0}
+
+.tab-nav-btn:hover{background:rgba(0,243,255,0.12)}
+
+.tab-btn{flex-shrink:0;padding:11px 18px;background:transparent;border:none;border-right:1px solid var(--border);color:var(--dim);cursor:pointer;font-family:var(--mono);font-size:.76rem;letter-spacing:.06em;text-transform:uppercase;transition:all .2s;white-space:nowrap;position:relative}
+
+.tab-btn:last-child{border-right:none}
+
+.tab-btn:hover{color:var(--text);background:rgba(0,243,255,0.05)}
+
+.tab-btn.active{color:var(--primary);background:rgba(0,243,255,0.1);border-bottom:2px solid var(--primary)}
+
+.tab-btn .tbadge{position:absolute;top:6px;right:6px;min-width:16px;height:16px;border-radius:8px;background:var(--err);color:#fff;font-size:.6rem;display:flex;align-items:center;justify-content:center;padding:0 3px}
+
+.tab-btn .tbadge.hidden{display:none}
+
+/* TAB CONTENT */
+
+.tab-pane{display:none}
+
+.tab-pane.active{display:block;opacity:1;animation:fadeIn .2s ease forwards}
+
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+/* ── SHARED COMPONENTS ── */
+
+button{background:linear-gradient(135deg,rgba(0,243,255,0.12),rgba(255,0,200,0.08));border:1px solid var(--primary);color:var(--primary);padding:7px 15px;border-radius:6px;cursor:pointer;font-family:var(--mono);font-size:.78rem;font-weight:600;letter-spacing:.05em;transition:all .22s;white-space:nowrap}
+
+button:hover{background:linear-gradient(135deg,rgba(0,243,255,0.28),rgba(255,0,200,0.18));box-shadow:0 0 12px rgba(0,243,255,0.4);transform:translateY(-1px)}
+
+button:active{transform:translateY(0)}
+
+button:disabled{opacity:.45;cursor:not-allowed;transform:none}
+
+.btn-s{border-color:var(--secondary);color:var(--secondary)}
+
+.btn-s:hover{box-shadow:0 0 12px rgba(255,0,200,0.4)!important}
+
+.btn-w{border-color:var(--warn);color:var(--warn)}
+
+.btn-w:hover{box-shadow:0 0 12px rgba(255,204,0,0.4)!important}
+
+.btn-g{border-color:var(--ok);color:var(--ok)}
+
+.btn-g:hover{box-shadow:0 0 12px rgba(0,255,157,0.4)!important}
+
+.btn-sm{padding:4px 10px;font-size:.7rem}
+
+select,input[type=text],input[type=number],textarea{background:var(--card);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:6px;outline:none;font-family:var(--mono);font-size:.78rem;transition:border-color .2s}
+
+select:focus,input:focus,textarea:focus{border-color:var(--primary)}
+
+input::placeholder,textarea::placeholder{color:rgba(224,224,255,0.3)}
+
+.ctrls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--card);padding:10px 14px;border-radius:8px;border:1px solid var(--border);margin-bottom:14px;backdrop-filter:blur(8px)}
+
+.card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;backdrop-filter:blur(6px);margin-bottom:14px}
+
+.card-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+
+.card-hdr h3{font-family:var(--mono);font-size:.88rem;color:var(--primary);letter-spacing:.06em}
+
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:14px}
+
+.stat{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:16px 12px;text-align:center}
+
+.stat h3{font-family:var(--mono);font-size:.65rem;letter-spacing:.1em;color:var(--dim);margin-bottom:8px;text-transform:uppercase}
+
+.stat span{display:block;font-size:2rem;font-weight:700;font-family:var(--mono);line-height:1}
+
+.s-c span{color:var(--primary)}
+
+.s-ok span{color:var(--ok)}
+
+.s-e span{color:var(--err)}
+
+.s-w span{color:var(--warn)}
+
+.s-i span{color:var(--info)}
+
+.tbl-wrap{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow-x:auto;max-height:420px;overflow-y:auto;margin-bottom:14px}
+
+.tbl-wrap::-webkit-scrollbar{width:4px;height:4px}
+
+.tbl-wrap::-webkit-scrollbar-thumb{background:rgba(0,243,255,0.25);border-radius:3px}
+
+table{width:100%;border-collapse:collapse;font-size:.82rem}
+
+thead th{background:rgba(0,243,255,0.09);padding:9px 12px;text-align:left;font-family:var(--mono);font-size:.7rem;letter-spacing:.07em;text-transform:uppercase;color:var(--primary);position:sticky;top:0;z-index:2;backdrop-filter:blur(10px);border-bottom:1px solid var(--border);white-space:nowrap;cursor:pointer;user-select:none}
+
+thead th:hover{background:rgba(0,243,255,0.16)}
+
+td{padding:7px 12px;border-bottom:1px solid rgba(255,255,255,0.04);white-space:nowrap;font-family:var(--mono);vertical-align:middle}
+
+tr:last-child td{border-bottom:none}
+
+tbody tr{transition:background .1s}
+
+tbody tr:hover{background:rgba(0,243,255,0.04)}
+
+tbody tr.err-row{background:rgba(255,56,96,0.05)}
+
+tbody tr.err-row:hover{background:rgba(255,56,96,0.09)}
+
+.tag{display:inline-block;padding:2px 8px;border-radius:20px;font-size:.7rem;font-weight:700;border:1px solid}
+
+.tag-ok{background:rgba(0,255,157,0.1);border-color:rgba(0,255,157,0.35);color:var(--ok)}
+
+.tag-err{background:rgba(255,56,96,0.1);border-color:rgba(255,56,96,0.35);color:var(--err)}
+
+.tag-warn{background:rgba(255,204,0,0.1);border-color:rgba(255,204,0,0.35);color:var(--warn)}
+
+.tag-info{background:rgba(77,159,255,0.1);border-color:rgba(77,159,255,0.35);color:var(--info)}
+
+/* TOAST */
+
+.toast-wrap{position:fixed;bottom:18px;right:18px;z-index:999;display:flex;flex-direction:column;gap:6px}
+
+.toast{background:rgba(10,10,35,.97);border:1px solid var(--border);border-radius:8px;padding:9px 14px;font-family:var(--mono);font-size:.76rem;color:var(--text);animation:toastIn .3s ease;max-width:280px}
+
+.toast.ok{border-color:var(--ok);color:var(--ok)}
+
+.toast.err{border-color:var(--err);color:var(--err)}
+
+.toast.warn{border-color:var(--warn);color:var(--warn)}
+
+@keyframes toastIn{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:none}}
+
+/* ── TAB 1: DC REPLICATION ── */
+
+.crit-card{background:var(--card);border:1px solid var(--border-e);border-left:3px solid var(--err);border-radius:10px;padding:12px 18px;margin-bottom:14px;backdrop-filter:blur(10px);position:relative;overflow:hidden}
+
+.crit-card.ok{border-color:rgba(0,255,157,0.3);border-left-color:var(--ok)}
+
+.crit-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+
+.crit-hdr h2{font-family:var(--mono);font-size:.88rem;letter-spacing:.06em;display:flex;align-items:center;gap:8px}
+
+.pdot{width:14px;height:14px;border-radius:50%;flex-shrink:0;background:var(--ok);box-shadow:0 0 6px var(--ok);animation:pulseG 1.8s ease-in-out infinite}
+
+.pdot.err{background:var(--err);box-shadow:0 0 6px var(--err);animation:pulseR 1.1s ease-in-out infinite}
+
+@keyframes pulseG{0%,100%{transform:scale(.94);box-shadow:0 0 0 0 rgba(0,255,157,.6)}50%{transform:scale(1);box-shadow:0 0 0 6px rgba(0,255,157,0)}}
+
+@keyframes pulseR{0%,100%{transform:scale(.94);box-shadow:0 0 0 0 rgba(255,56,96,.7)}50%{transform:scale(1);box-shadow:0 0 0 8px rgba(255,56,96,0)}}
+
+.charts-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px;margin-bottom:14px}
+
+.chart-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;backdrop-filter:blur(6px)}
+
+.resp-fast{color:var(--ok)}
+
+.resp-mid{color:var(--warn)}
+
+.resp-slow{color:var(--err)}
+
+.resp-na{color:var(--dim)}
+
+/* ── TAB 2: NTP ── */
+
+.ntp-status-strip{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+
+.ntp-ss{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 16px;font-family:var(--mono);font-size:.8rem}
+
+.ntp-ss label{color:var(--dim);font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;display:block;margin-bottom:4px}
+
+.ntp-ss span{font-size:1.2rem;font-weight:700}
+
+.drift-ok{color:var(--ok)}
+
+.drift-warn{color:var(--warn)}
+
+.drift-err{color:var(--err)}
+
+.ntp-map{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:14px;min-height:200px;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;max-height:380px;overflow-y:auto}
+
+.ntp-client-card{background:rgba(0,243,255,0.04);border:1px solid var(--border);border-radius:6px;padding:8px 10px}
+
+.ntp-client-card.warn-card{border-color:rgba(255,204,0,0.3);background:rgba(255,204,0,0.04)}
+
+.ntp-client-card.err-card{border-color:rgba(255,56,96,0.3);background:rgba(255,56,96,0.04)}
+
+.ntp-ip{font-family:var(--mono);font-size:.8rem;color:var(--primary);font-weight:700}
+
+.ntp-meta{font-family:var(--mono);font-size:.68rem;color:var(--dim);margin-top:3px}
+
+/* ── TAB 3: DNS BENCHMARK ── */
+
+.dns-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-bottom:14px}
+
+.dns-dc-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px}
+
+.dns-name{font-family:var(--mono);font-size:.88rem;color:var(--primary);font-weight:700;margin-bottom:4px}
+
+.dns-ip{font-family:var(--mono);font-size:.72rem;color:var(--dim);margin-bottom:10px}
+
+.dns-bar-wrap{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+
+.dns-bar-label{font-family:var(--mono);font-size:.7rem;color:var(--dim);width:70px;flex-shrink:0}
+
+.dns-bar-bg{flex:1;height:6px;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden}
+
+.dns-bar-fill{height:100%;border-radius:3px;transition:width .5s ease;background:var(--ok)}
+
+.dns-bar-fill.mid{background:var(--warn)}
+
+.dns-bar-fill.slow{background:var(--err)}
+
+.dns-val{font-family:var(--mono);font-size:.7rem;min-width:45px;text-align:right}
+
+.bench-running{animation:pulse 1s ease-in-out infinite}
+
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+
+/* ── TAB 4: LOG VIEWER ── */
+
+.log-sources{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+
+.log-src-btn{padding:6px 14px;font-size:.72rem}
+
+.log-src-btn.active{background:rgba(0,243,255,0.18);border-color:var(--primary);color:var(--primary)}
+
+.log-viewer{background:rgba(0,0,0,0.45);border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-family:var(--mono);font-size:.72rem;line-height:1.7;max-height:450px;overflow-y:auto;white-space:pre-wrap;word-break:break-all}
+
+.log-viewer::-webkit-scrollbar{width:4px}
+
+.log-viewer::-webkit-scrollbar-thumb{background:rgba(0,243,255,0.25);border-radius:3px}
+
+.log-line-err{color:var(--err)}
+
+.log-line-warn{color:var(--warn)}
+
+.log-line-ok{color:var(--ok)}
+
+.log-line-info{color:var(--dim)}
+
+.log-line-ts{color:rgba(0,243,255,0.5)}
+
+.log-stats-bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;font-family:var(--mono);font-size:.76rem}
+
+.lsb-item{padding:4px 10px;border-radius:4px;border:1px solid}
+
+.lsb-ok{border-color:rgba(0,255,157,0.3);color:var(--ok);background:rgba(0,255,157,0.07)}
+
+.lsb-e{border-color:rgba(255,56,96,0.3);color:var(--err);background:rgba(255,56,96,0.07)}
+
+.lsb-w{border-color:rgba(255,204,0,0.3);color:var(--warn);background:rgba(255,204,0,0.07)}
+
+.lsb-t{border-color:var(--border);color:var(--dim)}
+
+/* ── TAB 5: GOOGLE SYNC ── */
+
+.sync-service-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin-bottom:14px}
+
+.sync-svc-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;position:relative;overflow:hidden}
+
+.sync-svc-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+
+.sync-svc-card.gcds::before{background:linear-gradient(90deg,#4285f4,#34a853)}
+
+.sync-svc-card.gpw::before{background:linear-gradient(90deg,#ea4335,#fbbc04)}
+
+.svc-hdr{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+
+.svc-logo{width:32px;height:32px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:1.1rem}
+
+.svc-logo.g-logo{background:rgba(66,133,244,0.15);border:1px solid rgba(66,133,244,0.3)}
+
+.svc-title{font-family:var(--mono);font-size:.88rem;color:var(--text);font-weight:700}
+
+.svc-sub{font-family:var(--mono);font-size:.68rem;color:var(--dim)}
+
+.sync-metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+
+.sync-metric{background:rgba(0,243,255,0.05);border:1px solid var(--border);border-radius:6px;padding:8px;text-align:center}
+
+.sync-metric label{display:block;font-family:var(--mono);font-size:.63rem;color:var(--dim);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px}
+
+.sync-metric span{font-family:var(--mono);font-size:1.1rem;font-weight:700}
+
+.sync-log-mini{background:rgba(0,0,0,0.35);border-radius:6px;padding:8px;font-family:var(--mono);font-size:.7rem;max-height:140px;overflow-y:auto;line-height:1.6}
+
+.server-config{display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
+
+.server-config input{flex:1;min-width:200px}
+
+/* ── TAB 6: UBUNTU SERVER ── */
+
+.ubuntu-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-bottom:14px}
+
+.ub-metric{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px;text-align:center}
+
+.ub-metric label{display:block;font-family:var(--mono);font-size:.65rem;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}
+
+.ub-val{font-size:1.8rem;font-weight:700;font-family:var(--mono);line-height:1;display:block}
+
+.ub-sub{font-family:var(--mono);font-size:.7rem;color:var(--dim);margin-top:4px;display:block}
+
+.gauge-wrap{width:80px;height:80px;margin:0 auto 8px;position:relative}
+
+.gauge-svg{width:80px;height:80px}
+
+.gauge-bg{fill:none;stroke:rgba(255,255,255,0.07);stroke-width:8}
+
+.gauge-fill{fill:none;stroke-width:8;stroke-linecap:round;transform:rotate(-90deg);transform-origin:40px 40px;transition:stroke-dashoffset .6s ease}
+
+.process-list{background:rgba(0,0,0,0.3);border-radius:6px;padding:8px;font-family:var(--mono);font-size:.7rem;line-height:1.9;max-height:200px;overflow-y:auto}
+
+.ubuntu-endpoint{font-family:var(--mono);font-size:.8rem;color:var(--primary);background:rgba(0,243,255,0.07);border:1px solid var(--border);border-radius:6px;padding:8px 12px;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+
+.ubuntu-endpoint input{flex:1;background:transparent;border:none;color:var(--text);font-family:var(--mono);font-size:.8rem;outline:none}
+
+/* ── TAB 7: OLLAMA AI ── */
+
+.ollama-layout{display:grid;grid-template-columns:1fr 2fr;gap:14px}
+
+@media(max-width:900px){.ollama-layout{grid-template-columns:1fr}}
+
+.ollama-sidebar{display:flex;flex-direction:column;gap:10px}
+
+.ollama-config{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px}
+
+.ollama-config h3{font-family:var(--mono);font-size:.82rem;color:var(--primary);letter-spacing:.07em;margin-bottom:10px}
+
+.oc-row{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
+
+.oc-row label{font-family:var(--mono);font-size:.68rem;color:var(--dim);text-transform:uppercase;letter-spacing:.06em}
+
+.oc-row input,.oc-row select{width:100%}
+
+.quick-actions{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px}
+
+.quick-actions h3{font-family:var(--mono);font-size:.82rem;color:var(--primary);letter-spacing:.07em;margin-bottom:10px}
+
+.qa-btn{width:100%;margin-bottom:6px;text-align:left;padding:7px 10px;font-size:.72rem}
+
+.ollama-chat{background:var(--card);border:1px solid var(--border);border-radius:10px;display:flex;flex-direction:column;height:520px}
+
+.chat-messages{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
+
+.chat-messages::-webkit-scrollbar{width:4px}
+
+.chat-messages::-webkit-scrollbar-thumb{background:rgba(0,243,255,0.25);border-radius:3px}
+
+.msg{max-width:85%;padding:10px 14px;border-radius:8px;font-family:var(--mono);font-size:.78rem;line-height:1.6;word-break:break-word}
+
+.msg-user{background:rgba(0,243,255,0.12);border:1px solid rgba(0,243,255,0.25);color:var(--primary);align-self:flex-end}
+
+.msg-ai{background:rgba(255,0,200,0.08);border:1px solid rgba(255,0,200,0.2);color:var(--text);align-self:flex-start}
+
+.msg-system{background:rgba(255,204,0,0.08);border:1px solid rgba(255,204,0,0.2);color:var(--warn);align-self:center;font-size:.72rem;max-width:100%;text-align:center}
+
+.chat-input-row{padding:12px;border-top:1px solid var(--border);display:flex;gap:8px}
+
+.chat-input-row textarea{flex:1;resize:none;height:60px;font-size:.78rem}
+
+.thinking-dot{display:inline-block;animation:think .8s ease-in-out infinite}
+
+@keyframes think{0%,100%{opacity:.3}50%{opacity:1}}
+
+/* ── TAB 8: ADD MONITOR ── */
+
+.add-tab-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-bottom:14px}
+
+.add-template-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:18px;cursor:pointer;transition:all .2s;text-align:center}
+
+.add-template-card:hover{border-color:var(--primary);background:rgba(0,243,255,0.07);transform:translateY(-2px)}
+
+.add-template-card .atc-icon{font-size:2rem;margin-bottom:10px;display:block}
+
+.add-template-card h3{font-family:var(--mono);font-size:.85rem;color:var(--primary);margin-bottom:6px;letter-spacing:.06em}
+
+.add-template-card p{font-family:var(--ui);font-size:.8rem;color:var(--dim);line-height:1.5}
+
+.custom-tab-form{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:20px;display:none}
+
+.custom-tab-form.visible{display:block}
+
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+
+.form-row.full{grid-template-columns:1fr}
+
+.form-row label{font-family:var(--mono);font-size:.68rem;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:4px}
+
+.form-row input,.form-row select,.form-row textarea{width:100%}
+
+.saved-monitors{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;margin-top:14px}
+
+.saved-monitor-item{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-family:var(--mono);font-size:.8rem}
+
+.saved-monitor-item:last-child{border-bottom:none}
+
+/* EVENTS PANEL */
+
+.events-panel{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:14px}
+
+.events-hdr{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;border-bottom:1px solid var(--border);background:rgba(0,243,255,0.05)}
+
+.events-hdr h3{font-family:var(--mono);font-size:.82rem;color:var(--primary);letter-spacing:.07em}
+
+.evt-feed{max-height:280px;overflow-y:auto;padding:4px 0}
+
+.evt-feed::-webkit-scrollbar{width:4px}
+
+.evt-feed::-webkit-scrollbar-thumb{background:rgba(0,243,255,0.2);border-radius:3px}
+
+.evt-item{display:flex;align-items:flex-start;gap:10px;padding:6px 16px;border-bottom:1px solid rgba(255,255,255,0.03);font-family:var(--mono);font-size:.74rem}
+
+.evt-item:last-child{border-bottom:none}
+
+.evt-item:hover{background:rgba(255,255,255,0.02)}
+
+.evt-icon{flex-shrink:0;width:18px;text-align:center}
+
+.evt-time{color:var(--dim);white-space:nowrap;flex-shrink:0;font-size:.68rem}
+
+.evt-msg{flex:1;color:var(--text);line-height:1.4}
+
+.evt-item.crit{border-left:2px solid var(--err)}
+
+.evt-item.crit .evt-msg{color:var(--err)}
+
+.evt-item.warn{border-left:2px solid var(--warn)}
+
+.evt-item.warn .evt-msg{color:var(--warn)}
+
+.evt-item.ok .evt-msg{color:var(--ok)}
+
+/* MODAL */
+
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:100;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+
+.modal-overlay.open{display:flex}
+
+.modal{background:#0c0c28;border:1px solid var(--border);border-radius:12px;width:min(560px,95vw);max-height:80vh;overflow-y:auto;box-shadow:0 0 40px rgba(0,243,255,0.12)}
+
+.modal-hdr{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--border);background:rgba(0,243,255,0.05)}
+
+.modal-hdr h3{font-family:var(--mono);color:var(--primary);font-size:.88rem;letter-spacing:.06em}
+
+.modal-close{background:none;border:none;color:var(--dim);font-size:1.2rem;cursor:pointer;padding:2px 5px;border-radius:4px}
+
+.modal-close:hover{color:var(--err);transform:none;box-shadow:none}
+
+.modal-body{padding:18px}
+
+.modal-field{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-family:var(--mono);font-size:.78rem}
+
+.modal-field:last-of-type{border-bottom:none}
+
+.mf-lbl{color:var(--dim);flex-shrink:0;min-width:120px}
+
+.mf-val{color:var(--text);text-align:right}
+
+.mf-val.ok{color:var(--ok)}
+
+.mf-val.err{color:var(--err)}
+
+.mf-val.warn{color:var(--warn)}
+
+.repl-status-box{margin-top:12px;padding:10px;border-radius:6px;font-family:var(--mono);font-size:.76rem;display:none;border:1px solid;white-space:pre-wrap;word-break:break-word;line-height:1.6}
+
+.repl-status-box.visible{display:block}
+
+.repl-status-box.running{border-color:var(--warn);color:var(--warn)}
+
+.repl-status-box.success{border-color:var(--ok);color:var(--ok)}
+
+.repl-status-box.failed{border-color:var(--err);color:var(--err)}
+
+.modal-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+
+/* FOOTER */
+
+footer{text-align:center;padding:16px;border-top:1px solid var(--border);color:var(--dim);font-size:.72rem;font-family:var(--mono);letter-spacing:.05em}
+
+footer span{color:var(--primary)}
+
+@media(max-width:768px){
+  .tab-nav{gap:0}.tab-btn{padding:8px 12px;font-size:.68rem}
+  .stats-row{grid-template-columns:1fr 1fr}
+  .charts-grid{grid-template-columns:1fr}
+  .form-row{grid-template-columns:1fr}
+  .ollama-layout{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="corner corner--tl"></div>
+<div class="corner corner--tr"></div>
+<div class="corner corner--bl"></div>
+<div class="corner corner--br"></div>
+
+<div class="wrap">
+
+<!-- HEADER -->
+<header>
+  <div class="title-row">
+    <span class="logo-icon">🖥️</span>
+    <h1><span class="glitch" data-text="NOC OPERATIONS PLATFORM">NOC OPERATIONS PLATFORM</span></h1>
+    <span class="ver">v11.0</span>
+  </div>
+  <div class="hdr-meta">
+    <span><span id="overall-dot" class="sdot"></span><span id="overall-status">All Systems OK</span></span>
+    <span>Updated: <span id="last-update">--:--:--</span></span>
+    <span id="hdr-dc-count">DCs: --</span>
+    <span id="hdr-ntp-count">NTP Clients: --</span>
+    <span id="hdr-alerts">Alerts: 0</span>
+  </div>
+</header>
+
+<!-- NOTIFICATION COMEDY BAR -->
+<div class="notif-bar">
+  <div class="notif-stats">
+    <div class="notif-stat ns-email" title="Emails sent this session">
+      <span class="ns-icon">📬</span>
+      <span class="ns-count" id="count-email">0</span>
+      <span class="ns-label">Emails Fired</span>
+      <span class="ns-quip" id="quip-email">Your inbox is still alive. For now.</span>
+    </div>
+    <div class="notif-stat ns-tg" title="Telegram messages sent this session">
+      <span class="ns-icon">✈️</span>
+      <span class="ns-count" id="count-tg">0</span>
+      <span class="ns-label">Telegram Sent</span>
+      <span class="ns-quip" id="quip-tg">Jhonattan's phone is fine. Totally fine.</span>
+    </div>
+    <div class="notif-stat ns-teams" title="Teams webhooks fired this session">
+      <span class="ns-icon">🟦</span>
+      <span class="ns-count" id="count-teams">0</span>
+      <span class="ns-label">Teams Pinged</span>
+      <span class="ns-quip" id="quip-teams">Someone's status is now Do Not Disturb.</span>
+    </div>
+    <div class="notif-stat ns-total" title="Total alerts across all channels">
+      <span class="ns-icon">🚨</span>
+      <span class="ns-count" id="count-total">0</span>
+      <span class="ns-label">Total Alerts</span>
+      <span class="ns-quip" id="quip-total">All quiet on the western front.</span>
+    </div>
+    <div class="notif-stat" title="Uptime this session" style="flex:0.7;min-width:120px">
+      <span class="ns-icon">⏱️</span>
+      <span class="ns-count" id="count-uptime" style="color:var(--ok);font-size:1.1rem">00:00</span>
+      <span class="ns-label">Session Time</span>
+      <span class="ns-quip">You're still here? Respect.</span>
+    </div>
+  </div>
+  <div class="notif-bar-footer alert-bar">
+    <div class="notif-channels">
+      <span style="font-family:var(--mono);font-size:.68rem;color:var(--dim)">CHANNELS:</span>
+      <div class="ch-pill active-email" id="pill-email" onclick="toggleAlertPill(this,'email')" title="Toggle email alerts">
+        <div class="ch-dot"></div>📬 Email
+      </div>
+      <div class="ch-pill active-tg" id="pill-tg" onclick="toggleAlertPill(this,'tg')" title="Toggle Telegram alerts">
+        <div class="ch-dot"></div>✈️ Telegram
+      </div>
+      <div class="ch-pill active-teams" id="pill-teams" onclick="toggleAlertPill(this,'teams')" title="Toggle Teams alerts">
+        <div class="ch-dot"></div>🟦 Teams
+      </div>
+    </div>
+    <div class="notif-bar-actions">
+      <button class="btn-sm btn-w" onclick="testAlerts()">🔔 Panic Test</button>
+    </div>
+  </div>
+</div>
+
+<!-- TABS -->
+<nav class="tab-nav" role="tablist">
+  <button class="tab-btn active" onclick="switchTab('dc',this)" role="tab">🖥 DC Replication<span class="tbadge hidden" id="badge-dc">0</span></button>
+  <button class="tab-btn" onclick="switchTab('ntp',this)" role="tab">⏱ NTP Monitor<span class="tbadge hidden" id="badge-ntp">0</span></button>
+  <button class="tab-btn" onclick="switchTab('dns',this)" role="tab">🌐 DNS Benchmark</button>
+  <button class="tab-btn" onclick="switchTab('logs',this)" role="tab">📋 Log Viewer<span class="tbadge hidden" id="badge-logs">0</span></button>
+  <button class="tab-btn" onclick="switchTab('gsync',this)" role="tab">☁️ Google Sync<span class="tbadge hidden" id="badge-gsync">0</span></button>
+  <button class="tab-btn" onclick="switchTab('ubuntu',this)" role="tab">🐧 Ubuntu Server</button>
+  <button class="tab-btn" onclick="switchTab('ollama',this)" role="tab">🤖 Ollama AI</button>
+  <button class="tab-btn" onclick="switchTab('pbx',this)" role="tab">📞 PBX</button>
+  <button class="tab-btn" onclick="switchTab('helpdesk',this)" role="tab">🎫 Helpdesk</button>
+  <button class="tab-btn btn-s" onclick="switchTab('addtab',this)" role="tab">➕ Add Monitor</button>
+</nav>
+
+<!-- ════════════════════ TAB 1: DC REPLICATION ════════════════════ -->
+<div id="tab-dc" class="tab-pane active">
+  <div class="crit-card" id="crit-card">
+    <div class="crit-hdr">
+      <h2>⚡ CRITICAL DEVICE — <span style="color:var(--primary)">192.0.2.7</span> <small style="font-size:.7em;color:var(--dim);font-weight:400">DC-CRITICAL-01</small></h2>
+      <div id="crit-dot" class="pdot err"></div>
+    </div>
+    <div id="crit-details" style="font-family:var(--mono);font-size:.82rem;color:var(--dim)">Loading…</div>
+  </div>
+  <div class="ctrls">
+    <button onclick="loadDCData()">🔄 Refresh</button>
+    <button class="btn-w" onclick="forceReplAll()">⚡ Force All Replication</button>
+    <input type="text" id="dc-search" placeholder="🔍 Search DC, IP, Site..." oninput="filterDCTable()" style="flex:1;min-width:160px;max-width:280px">
+    <select id="dc-status-filter" onchange="filterDCTable()">
+      <option value="all">All Status</option>
+      <option value="OK">✅ Healthy</option>
+      <option value="ERROR">❌ Errors</option>
+    </select>
+    <button onclick="exportDCCSV()" class="btn-s">📥 Export CSV</button>
+  </div>
+  <div class="stats-row">
+    <div class="stat s-c"><h3>Total DCs</h3><span id="dc-total">0</span></div>
+    <div class="stat s-ok"><h3>Healthy</h3><span id="dc-ok">0</span></div>
+    <div class="stat s-e"><h3>Errors</h3><span id="dc-err">0</span></div>
+    <div class="stat s-w"><h3>Uptime</h3><span id="dc-uptime">100%</span></div>
+  </div>
+  <div class="charts-grid">
+    <div class="chart-card"><canvas id="dcStatusChart" height="200"></canvas></div>
+    <div class="chart-card"><canvas id="dcSiteChart" height="200"></canvas></div>
+    <div class="chart-card"><canvas id="dcRespChart" height="200"></canvas></div>
+  </div>
+  <div class="tbl-wrap">
+    <table id="dc-table">
+      <thead><tr>
+        <th onclick="sortDC(0)">DC Name</th><th onclick="sortDC(1)">IP</th>
+        <th onclick="sortDC(2)">Site</th><th onclick="sortDC(3)">Replication</th>
+        <th onclick="sortDC(4)">Status</th><th onclick="sortDC(5)">Response</th>
+        <th>Actions</th>
+      </tr></thead>
+      <tbody id="dc-tbody"><tr><td colspan="7" style="text-align:center;color:var(--dim);padding:28px">Loading…</td></tr></tbody>
+    </table>
+  </div>
+  <div class="events-panel">
+    <div class="events-hdr"><h3>📡 DC Event Feed</h3><button class="btn-sm btn-s" onclick="clearEvents('dc')">Clear</button></div>
+    <div class="evt-feed" id="dc-events"></div>
+  </div>
+</div>
+
+<!-- ════════════════════ TAB 2: NTP MONITOR ════════════════════ -->
+<div id="tab-ntp" class="tab-pane">
+  <div class="ctrls">
+    <button onclick="loadNTPData()">🔄 Refresh</button>
+    <input type="text" id="ntp-server-ip" placeholder="NTP Server IP" value="192.0.2.9" style="width:160px">
+    <input type="text" id="ntp-search" placeholder="🔍 Search clients..." oninput="filterNTP()" style="flex:1;max-width:240px">
+    <select id="ntp-sort" onchange="renderNTPTable()">
+      <option value="ip">Sort by: IP Address</option>
+      <option value="drift">Sort by: Drift</option>
+      <option value="status">Sort by: Status</option>
+      <option value="last">Sort by: Last Seen</option>
+    </select>
+    <select id="ntp-filter-status" onchange="filterNTP()">
+      <option value="all">All</option>
+      <option value="ok">✅ OK</option>
+      <option value="warn">⚠️ Warning</option>
+      <option value="crit">❌ Critical</option>
+    </select>
+  </div>
+  <div class="ntp-status-strip">
+    <div class="ntp-ss"><label>Server Date</label><span id="ntp-date" style="color:var(--primary)">--</span></div>
+    <div class="ntp-ss"><label>Server Time</label><span id="ntp-time" style="color:var(--primary)">--</span></div>
+    <div class="ntp-ss s-c"><label>Total Clients</label><span id="ntp-total" style="color:var(--primary)">0</span></div>
+    <div class="ntp-ss s-ok"><label>OK (drift &lt;128ms)</label><span id="ntp-ok" style="color:var(--ok)">0</span></div>
+    <div class="ntp-ss s-w"><label>Warning (128-512ms)</label><span id="ntp-warn" style="color:var(--warn)">0</span></div>
+    <div class="ntp-ss s-e"><label>Critical (&gt;512ms)</label><span id="ntp-crit" style="color:var(--err)">0</span></div>
+  </div>
+  <div class="tbl-wrap" style="max-height:480px">
+    <table id="ntp-table">
+      <thead><tr>
+        <th>Address</th><th>Status</th><th>NTP Server</th><th>Drift (ms)</th>
+        <th>Requests</th><th>Drop Rate</th><th>Interval</th><th>Last Seen</th>
+      </tr></thead>
+      <tbody id="ntp-tbody"><tr><td colspan="8" style="text-align:center;color:var(--dim);padding:28px">Load NTP data or configure ntp_status.json path above</td></tr></tbody>
+    </table>
+  </div>
+  <div class="card">
+    <div class="card-hdr"><h3>NTP Client Map — Drift Distribution</h3></div>
+    <canvas id="ntpDriftChart" height="160"></canvas>
+  </div>
+  <div class="events-panel">
+    <div class="events-hdr"><h3>⏱ NTP Events</h3></div>
+    <div class="evt-feed" id="ntp-events"></div>
+  </div>
+</div>
+
+<!-- ════════════════════ TAB 3: DNS BENCHMARK ════════════════════ -->
+<div id="tab-dns" class="tab-pane">
+  <div class="ctrls">
+    <button onclick="runDNSBenchmark()" id="dns-bench-btn">🌐 Run Benchmark</button>
+    <input type="text" id="dns-test-domain" placeholder="Test domain (e.g. example.net)" value="example.net" style="width:180px">
+    <select id="dns-test-count">
+      <option value="5">5 queries/DC</option>
+      <option value="10" selected>10 queries/DC</option>
+      <option value="20">20 queries/DC</option>
+    </select>
+    <span id="dns-bench-status" style="font-family:var(--mono);font-size:.76rem;color:var(--dim)">Ready — click Run Benchmark</span>
+  </div>
+  <div class="stats-row">
+    <div class="stat s-c"><h3>DCs Tested</h3><span id="dns-tested">0</span></div>
+    <div class="stat s-ok"><h3>Fastest (ms)</h3><span id="dns-fastest">--</span></div>
+    <div class="stat s-w"><h3>Avg (ms)</h3><span id="dns-avg">--</span></div>
+    <div class="stat s-e"><h3>Failed</h3><span id="dns-failed">0</span></div>
+  </div>
+  <div class="dns-grid" id="dns-dc-cards">
+    <div class="card" style="grid-column:1/-1;text-align:center;color:var(--dim);padding:32px;font-family:var(--mono)">
+      No benchmark data — click Run Benchmark to test all DCs
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-hdr"><h3>DNS Response Time Comparison</h3></div>
+    <canvas id="dnsChart" height="200"></canvas>
+  </div>
+</div>
+
+<!-- ════════════════════ TAB 4: LOG VIEWER ════════════════════ -->
+<div id="tab-logs" class="tab-pane">
+  <div class="ctrls">
+    <div class="log-sources">
+      <button class="log-src-btn active" data-src="ck" onclick="switchLogSource('ck',this)">🔵 CK Agent (Sample-DC)</button>
+      <button class="log-src-btn" data-src="gcds" onclick="switchLogSource('gcds',this)">🟢 GCDS Sync (192.0.2.10)</button>
+      <button class="log-src-btn" data-src="dc" onclick="switchLogSource('dc',this)">⚪ DC Monitor</button>
+    </div>
+    <button onclick="refreshCurrentLog()">🔄 Refresh</button>
+    <input type="text" id="log-search" placeholder="🔍 Filter log lines..." oninput="filterLogLines()" style="flex:1;max-width:260px">
+    <select id="log-level-filter" onchange="filterLogLines()">
+      <option value="all">All Levels</option>
+      <option value="error">Errors</option>
+      <option value="warn">Warnings</option>
+      <option value="ok">Success</option>
+    </select>
+    <button class="btn-s btn-sm" onclick="downloadLog()">📥 Download</button>
+  </div>
+  <div id="log-server-config" class="card" style="padding:10px 14px;margin-bottom:10px">
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <span style="font-family:var(--mono);font-size:.72rem;color:var(--dim)">📂 Log path:</span>
+      <span id="log-current-path" style="font-family:var(--mono);font-size:.76rem;color:var(--primary)">C:\ck-agent\log\ck-agent.txt</span>
+      <span style="font-family:var(--mono);font-size:.72rem;color:var(--dim)">| Served via:</span>
+      <input type="text" id="log-url-override" placeholder="URL (leave blank for default)" style="flex:1;min-width:180px;max-width:320px;font-size:.72rem">
+      <button class="btn-sm" onclick="setLogUrl()">Set</button>
+      <span id="log-auto-refresh-status" style="font-family:var(--mono);font-size:.7rem;color:var(--ok)">● Auto-refresh 30s</span>
+    </div>
+  </div>
+  <div class="log-stats-bar" id="log-stats-bar">
+    <span class="lsb-t">Lines: <strong id="log-line-count">0</strong></span>
+    <span class="lsb-e">Errors: <strong id="log-err-count">0</strong></span>
+    <span class="lsb-w">Warnings: <strong id="log-warn-count">0</strong></span>
+    <span class="lsb-ok">Success: <strong id="log-ok-count">0</strong></span>
+    <span id="log-last-update" style="font-family:var(--mono);font-size:.72rem;color:var(--dim);margin-left:auto">Last: --</span>
+  </div>
+  <div class="log-viewer" id="log-viewer"><span style="color:var(--dim)">Select a log source and click Refresh…</span></div>
+  <div class="events-panel" style="margin-top:14px">
+    <div class="events-hdr"><h3>📋 Log Alerts</h3><button class="btn-sm" onclick="analyzeLogsWithAI()">🤖 Analyze with AI</button></div>
+    <div class="evt-feed" id="log-events"></div>
+  </div>
+</div>
+
+<!-- ════════════════════ TAB 5: GOOGLE SYNC ════════════════════ -->
+<div id="tab-gsync" class="tab-pane">
+  <div class="ctrls">
+    <button onclick="loadGSyncData()">🔄 Refresh All</button>
+    <span style="font-family:var(--mono);font-size:.75rem;color:var(--dim)">Monitor Google Directory & Password Sync services</span>
+  </div>
+  <div class="sync-service-grid">
+    <!-- GCDS Card -->
+    <div class="sync-svc-card gcds">
+      <div class="svc-hdr">
+        <div class="svc-logo g-logo">📂</div>
+        <div><div class="svc-title">Google Directory Sync</div><div class="svc-sub">Host: 192.0.2.10 | C:\tmp\gcds-sample.log</div></div>
+        <div id="gcds-dot" class="pdot" style="margin-left:auto"></div>
+      </div>
+      <div class="server-config">
+        <input type="text" id="gcds-url" placeholder="Log URL override" style="flex:1">
+        <button class="btn-sm" onclick="refreshGCDS()">🔄</button>
+      </div>
+      <div class="sync-metrics">
+        <div class="sync-metric"><label>Last Sync</label><span id="gcds-last-sync" style="color:var(--primary)">--</span></div>
+        <div class="sync-metric"><label>Status</label><span id="gcds-status" style="color:var(--dim)">--</span></div>
+        <div class="sync-metric"><label>Users Synced</label><span id="gcds-users" style="color:var(--ok)">--</span></div>
+        <div class="sync-metric"><label>Errors</label><span id="gcds-errors" style="color:var(--err)">--</span></div>
+      </div>
+      <div class="sync-log-mini" id="gcds-log-mini"><span style="color:var(--dim)">Loading log…</span></div>
+      <div style="margin-top:10px;display:flex;gap:8px">
+        <button class="btn-sm btn-g" onclick="openFullLog('gcds')">📋 Full Log</button>
+        <button class="btn-sm" onclick="analyzeGCDSLog()">🤖 AI Analysis</button>
+      </div>
+    </div>
+    <!-- Password Sync Card -->
+    <div class="sync-svc-card gpw">
+      <div class="svc-hdr">
+        <div class="svc-logo g-logo" style="background:rgba(234,67,53,0.15);border-color:rgba(234,67,53,0.3)">🔐</div>
+        <div><div class="svc-title">Google Password Sync</div><div class="svc-sub" id="gpw-server-sub">Configure server below</div></div>
+        <div id="gpw-dot" class="pdot" style="margin-left:auto"></div>
+      </div>
+      <div class="server-config">
+        <input type="text" id="gpw-server" placeholder="Password Sync server IP/hostname" style="flex:1">
+        <input type="text" id="gpw-log-path" placeholder="Log path or URL" style="flex:1">
+        <button class="btn-sm" onclick="refreshGPW()">🔄</button>
+      </div>
+      <div class="sync-metrics">
+        <div class="sync-metric"><label>Last Sync</label><span id="gpw-last-sync" style="color:var(--primary)">--</span></div>
+        <div class="sync-metric"><label>Status</label><span id="gpw-status" style="color:var(--dim)">Not configured</span></div>
+        <div class="sync-metric"><label>Events</label><span id="gpw-events" style="color:var(--ok)">--</span></div>
+        <div class="sync-metric"><label>Errors</label><span id="gpw-errors" style="color:var(--err)">--</span></div>
+      </div>
+      <div class="sync-log-mini" id="gpw-log-mini"><span style="color:var(--dim)">Configure server to view logs…</span></div>
+      <div style="margin-top:10px;display:flex;gap:8px">
+        <button class="btn-sm btn-g" onclick="saveGPWConfig()">💾 Save Config</button>
+        <button class="btn-sm" onclick="analyzeGPWLog()">🤖 AI Analysis</button>
+      </div>
+    </div>
+  </div>
+  <div class="events-panel">
+    <div class="events-hdr"><h3>☁️ Sync Events</h3><button class="btn-sm btn-s" onclick="clearEvents('gsync')">Clear</button></div>
+    <div class="evt-feed" id="gsync-events"></div>
+  </div>
+</div>
+
+<!-- ════════════════════ TAB 6: UBUNTU SERVER ════════════════════ -->
+<div id="tab-ubuntu" class="tab-pane">
+  <div class="ctrls">
+    <button onclick="loadUbuntuData()">🔄 Refresh</button>
+    <div class="ubuntu-endpoint">
+      <span>🐧 Server:</span>
+      <input type="text" id="ubuntu-api" placeholder="http://your-ubuntu-server/status.json" value="">
+      <button class="btn-sm" onclick="saveUbuntuEndpoint()">Set</button>
+    </div>
+  </div>
+  <div class="ubuntu-grid" id="ubuntu-metrics">
+    <div class="ub-metric">
+      <label>CPU Usage</label>
+      <div class="gauge-wrap"><svg class="gauge-svg" viewBox="0 0 80 80"><circle class="gauge-bg" cx="40" cy="40" r="32"/><circle class="gauge-fill" id="cpu-gauge" cx="40" cy="40" r="32" stroke="var(--primary)" stroke-dasharray="201 201" stroke-dashoffset="201"/></svg></div>
+      <span class="ub-val" id="cpu-val" style="color:var(--primary)">--%</span>
+      <span class="ub-sub" id="cpu-cores">-- cores</span>
+    </div>
+    <div class="ub-metric">
+      <label>Memory</label>
+      <div class="gauge-wrap"><svg class="gauge-svg" viewBox="0 0 80 80"><circle class="gauge-bg" cx="40" cy="40" r="32"/><circle class="gauge-fill" id="ram-gauge" cx="40" cy="40" r="32" stroke="var(--ok)" stroke-dasharray="201 201" stroke-dashoffset="201"/></svg></div>
+      <span class="ub-val" id="ram-val" style="color:var(--ok)">--%</span>
+      <span class="ub-sub" id="ram-detail">-- / -- GB</span>
+    </div>
+    <div class="ub-metric">
+      <label>Disk Usage</label>
+      <div class="gauge-wrap"><svg class="gauge-svg" viewBox="0 0 80 80"><circle class="gauge-bg" cx="40" cy="40" r="32"/><circle class="gauge-fill" id="disk-gauge" cx="40" cy="40" r="32" stroke="var(--warn)" stroke-dasharray="201 201" stroke-dashoffset="201"/></svg></div>
+      <span class="ub-val" id="disk-val" style="color:var(--warn)">--%</span>
+      <span class="ub-sub" id="disk-detail">-- / -- GB</span>
+    </div>
+    <div class="ub-metric">
+      <label>Network In</label>
+      <span class="ub-val" id="net-in" style="color:var(--info)">--</span>
+      <span class="ub-sub">MB/s</span>
+    </div>
+    <div class="ub-metric">
+      <label>Network Out</label>
+      <span class="ub-val" id="net-out" style="color:var(--secondary)">--</span>
+      <span class="ub-sub">MB/s</span>
+    </div>
+    <div class="ub-metric">
+      <label>Uptime</label>
+      <span class="ub-val" id="uptime-val" style="color:var(--ok);font-size:1.2rem">--</span>
+      <span class="ub-sub" id="uptime-since">Since --</span>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-hdr"><h3>CPU History (last 20 samples)</h3></div>
+    <canvas id="ubuntuCpuChart" height="120"></canvas>
+  </div>
+  <div class="card">
+    <div class="card-hdr"><h3>Top Processes</h3></div>
+    <div class="process-list" id="process-list"><span style="color:var(--dim)">No data</span></div>
+  </div>
+  <div class="events-panel">
+    <div class="events-hdr"><h3>🐧 Server Events</h3></div>
+    <div class="evt-feed" id="ubuntu-events"></div>
+  </div>
+</div>
+
+<!-- ════════════════════ TAB 7: OLLAMA AI ════════════════════ -->
+<div id="tab-ollama" class="tab-pane">
+  <div class="ollama-layout">
+    <div class="ollama-sidebar">
+      <div class="ollama-config">
+        <h3>⚙️ Ollama Config</h3>
+        <div class="oc-row"><label>Server URL</label><input type="text" id="ollama-url" value="http://localhost:11434" placeholder="http://your-server:11434"></div>
+        <div class="oc-row"><label>Model</label>
+          <select id="ollama-model">
+            <option value="llama3.2">llama3.2</option>
+            <option value="llama3.1">llama3.1</option>
+            <option value="mistral">mistral</option>
+            <option value="phi3">phi3</option>
+            <option value="gemma2">gemma2</option>
+          </select>
+        </div>
+        <div class="oc-row"><label>Max Tokens</label><input type="number" id="ollama-tokens" value="1024" min="128" max="8192"></div>
+        <button onclick="testOllama()" style="width:100%;margin-top:4px">🔗 Test Connection</button>
+        <button onclick="pullModels()" class="btn-s" style="width:100%;margin-top:6px">📥 List Models</button>
+        <div id="ollama-status" style="margin-top:10px;font-family:var(--mono);font-size:.72rem;color:var(--dim)">Not connected</div>
+      </div>
+      <div class="quick-actions">
+        <h3>⚡ Quick Actions</h3>
+        <button class="qa-btn btn-w" onclick="aiAnalyzeDC()">🖥 Analyze DC Errors</button>
+        <button class="qa-btn" onclick="aiAnalyzeNTP()">⏱ NTP Drift Summary</button>
+        <button class="qa-btn btn-s" onclick="aiAnalyzeLogs()">📋 Summarize Logs</button>
+        <button class="qa-btn btn-g" onclick="aiHealthReport()">📊 Full Health Report</button>
+        <button class="qa-btn" onclick="aiSuggestFixes()">🔧 Suggest Fixes</button>
+        <button class="qa-btn btn-w" onclick="aiDraftAlert()">📨 Draft Alert Email</button>
+      </div>
+      <div class="ollama-config">
+        <h3>📡 AI Alerts</h3>
+        <div style="font-family:var(--mono);font-size:.72rem;color:var(--dim);margin-bottom:8px">Send AI-generated summaries to Telegram/Teams/Email</div>
+        <div style="display:flex;gap:6px;flex-direction:column">
+          <button class="btn-sm btn-w" onclick="sendAIAlertNow()">📨 Send AI Alert Now</button>
+          <button class="btn-sm btn-s" onclick="scheduleAIAlerts()">⏰ Schedule Daily Digest</button>
+        </div>
+        <div id="ai-alert-status" style="margin-top:8px;font-family:var(--mono);font-size:.68rem;color:var(--dim)">Not scheduled</div>
+      </div>
+    </div>
+    <div class="ollama-chat" id="ollama-chat">
+      <div class="chat-messages" id="chat-messages">
+        <div class="msg msg-system">🤖 NOC AI Assistant — Powered by Ollama<br><small>Ask me about your DCs, NTP clients, logs, or anything in your environment.</small></div>
+        <div class="msg msg-ai">Hello! I'm your NOC AI assistant. I have access to your DC replication status, NTP monitoring data, and server logs. You can ask me to:
+• Analyze DC replication errors
+• Summarize log files
+• Identify NTP drift issues
+• Draft alert messages
+• Suggest fixes for infrastructure problems
+
+What would you like to know?</div>
+      </div>
+      <div class="chat-input-row">
+        <textarea id="chat-input" placeholder="Ask about your infrastructure..." onkeydown="chatKeyDown(event)"></textarea>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <button onclick="sendChat()">Send</button>
+          <button onclick="clearChat()" class="btn-s btn-sm">Clear</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- ════════════════════ TAB 8: PBX / MITEL SNMP ════════════════════ -->
+<div id="tab-pbx" class="tab-pane">
+  <div class="ctrls">
+    <button onclick="loadPBXData()">🔄 Refresh</button>
+    <button class="btn-w" onclick="loadPBXSNMP()">📡 SNMP Walk</button>
+    <input type="text" id="pbx-search" placeholder="🔍 Search PBX..." oninput="filterPBX()" style="flex:1;min-width:160px;max-width:260px">
+    <span id="pbx-status" style="font-family:var(--mono);font-size:.75rem;color:var(--dim)"></span>
+  </div>
+  <div class="ntp-status-strip">
+    <div class="ntp-ss"><label>Total PBXs</label><span id="pbx-total" style="color:var(--primary)">0</span></div>
+    <div class="ntp-ss s-ok"><label>Healthy</label><span id="pbx-healthy" style="color:var(--ok)">0</span></div>
+    <div class="ntp-ss s-w"><label>Degraded</label><span id="pbx-degraded" style="color:var(--warn)">0</span></div>
+    <div class="ntp-ss s-e"><label>Critical</label><span id="pbx-critical" style="color:var(--err)">0</span></div>
+  </div>
+  <div class="tbl-wrap" style="max-height:480px">
+    <table id="pbx-table">
+      <thead><tr>
+        <th onclick="sortPBX(0)">PBX Name</th><th onclick="sortPBX(1)">Host</th>
+        <th onclick="sortPBX(2)">Model</th><th onclick="sortPBX(3)">Status</th>
+        <th onclick="sortPBX(4)">Uptime %</th><th onclick="sortPBX(5)">Active Calls</th>
+        <th>Actions</th>
+      </tr></thead>
+      <tbody id="pbx-tbody"><tr><td colspan="7" style="text-align:center;color:var(--dim);padding:28px">Load PBX data or click Refresh.</td></tr></tbody>
+    </table>
+  </div>
+  <div class="chart-card"><canvas id="pbxStatusChart" height="180"></canvas></div>
+  <div class="events-panel">
+    <div class="events-hdr"><h3>📡 SNMP Walk Data</h3><button class="btn-sm btn-s" onclick="clearEvents('pbx')">Clear</button></div>
+    <div class="evt-feed" id="pbx-events" style="font-family:var(--mono);font-size:.7rem;max-height:300px;overflow:auto"></div>
+  </div>
+</div>
+</div>
+
+<!-- ════════════════════ TAB 9: HELPDESK ════════════════════ -->
+<div id="tab-helpdesk" class="tab-pane">
+  <div class="crit-card" id="helpdesk-crit-card">
+    <div class="crit-hdr">
+      <h2>🎫 HELPDESK QUEUE <small style="font-size:.7em;color:var(--dim);font-weight:400">Active tickets</small></h2>
+      <div id="helpdesk-dot" class="pdot ok"></div>
+    </div>
+    <div id="helpdesk-details" style="font-family:var(--mono);font-size:.82rem;color:var(--dim)">Loading…</div>
+  </div>
+  <div class="ctrls">
+    <button onclick="loadHelpdeskTickets()">🔄 Refresh</button>
+    <input type="text" id="helpdesk-ticket-id" placeholder="Ticket ID" style="width:120px">
+    <button onclick="loadHelpdeskTicket()">🔎 View Ticket</button>
+    <button class="btn-g" onclick="openCreateTicket()">➕ Create Ticket</button>
+  </div>
+  <div class="stats-row">
+    <div class="stat s-c"><h3>Total</h3><span id="helpdesk-total">0</span></div>
+    <div class="stat s-ok"><h3>Open</h3><span id="helpdesk-open">0</span></div>
+    <div class="stat s-w"><h3>In Progress</h3><span id="helpdesk-progress">0</span></div>
+    <div class="stat s-e"><h3>Closed</h3><span id="helpdesk-closed">0</span></div>
+  </div>
+  <div class="tbl-wrap">
+    <table id="helpdesk-table">
+      <thead><tr><th>Ticket#</th><th>Name</th><th>Email</th><th>Subject</th><th>Status</th><th>Created</th><th>Actions</th></tr></thead>
+      <tbody id="helpdesk-tbody"><tr><td colspan="7" style="text-align:center;color:var(--dim);padding:28px">Load tickets to see active helpdesk items.</td></tr></tbody>
+    </table>
+  </div>
+  <div class="events-panel">
+    <div class="events-hdr"><h3>🎫 Helpdesk Events</h3><button class="btn-sm btn-s" onclick="clearEvents('helpdesk')">Clear</button></div>
+    <div class="evt-feed" id="helpdesk-events"></div>
+  </div>
+  <div id="helpdesk-create" class="card" style="display:none;margin-top:14px">
+    <div class="card-hdr"><h3>Create Ticket</h3><button class="btn-sm btn-s" onclick="document.getElementById('helpdesk-create').style.display='none'">✕ Close</button></div>
+    <div class="form-row">
+      <div><label>Name</label><input type="text" id="h-name" placeholder="Your name"></div>
+      <div><label>Email</label><input type="text" id="h-email" placeholder="you@example.com"></div>
+    </div>
+    <div class="form-row full" style="margin-top:8px"><label>Subject</label><input type="text" id="h-subject" placeholder="Issue summary"></div>
+    <div class="form-row full" style="margin-top:8px"><label>Message</label><textarea id="h-message" rows="4" placeholder="Describe the issue"></textarea></div>
+    <button class="btn-g" style="margin-top:10px" onclick="submitTicket()">📨 Submit</button>
+  </div>
+</div>
+</div>
+
+<!-- ════════════════════ TAB 8: ADD MONITOR ════════════════════ -->
+<div id="tab-addtab" class="tab-pane">
+  <div style="margin-bottom:14px">
+    <div class="card" style="padding:14px 18px">
+      <div class="card-hdr"><h3>Add New Monitor</h3></div>
+      <div style="font-family:var(--ui);font-size:.88rem;color:var(--dim)">
+        Choose a template below to quickly add a new monitoring integration, or configure a custom service.
+      </div>
+    </div>
+  </div>
+  <div class="add-tab-grid">
+    <div class="add-template-card" onclick="openTemplate('json-api')">
+      <span class="atc-icon">📡</span>
+      <h3>JSON API Monitor</h3>
+      <p>Poll any JSON endpoint, extract metrics, and alert on thresholds</p>
+    </div>
+    <div class="add-template-card" onclick="openTemplate('log-file')">
+      <span class="atc-icon">📋</span>
+      <h3>Log File Watcher</h3>
+      <p>Watch a log file via HTTP, parse lines, and alert on patterns</p>
+    </div>
+    <div class="add-template-card" onclick="openTemplate('ping')">
+      <span class="atc-icon">🏓</span>
+      <h3>Ping / Port Check</h3>
+      <p>Monitor host availability and port connectivity</p>
+    </div>
+    <div class="add-template-card" onclick="openTemplate('windows-service')">
+      <span class="atc-icon">⚙️</span>
+      <h3>Windows Service</h3>
+      <p>Monitor Windows service status via PS1 API endpoint</p>
+    </div>
+    <div class="add-template-card" onclick="openTemplate('linux-service')">
+      <span class="atc-icon">🐧</span>
+      <h3>Linux Service</h3>
+      <p>systemd service monitor via shell script API</p>
+    </div>
+    <div class="add-template-card" onclick="openTemplate('custom')">
+      <span class="atc-icon">🔧</span>
+      <h3>Custom Monitor</h3>
+      <p>Full custom configuration with your own data source</p>
+    </div>
+  </div>
+  <div class="custom-tab-form" id="template-form">
+    <div class="card-hdr"><h3 id="template-title">Configure Monitor</h3><button class="btn-sm btn-s" onclick="document.getElementById('template-form').classList.remove('visible')">✕ Close</button></div>
+    <div class="form-row">
+      <div><label>Monitor Name</label><input type="text" id="new-mon-name" placeholder="e.g. SQL Server"></div>
+      <div><label>Tab Icon (emoji)</label><input type="text" id="new-mon-icon" placeholder="🖥" style="width:80px"></div>
+    </div>
+    <div class="form-row">
+      <div><label>Data URL / Endpoint</label><input type="text" id="new-mon-url" placeholder="http://server/status.json"></div>
+      <div><label>Refresh Interval (sec)</label><input type="number" id="new-mon-interval" value="60" min="10"></div>
+    </div>
+    <div class="form-row">
+      <div><label>Alert on Pattern (regex)</label><input type="text" id="new-mon-alert-pattern" placeholder="error|failed|critical"></div>
+      <div><label>Type</label>
+        <select id="new-mon-type">
+          <option value="json">JSON API</option>
+          <option value="log">Log File</option>
+          <option value="ping">Ping Check</option>
+          <option value="custom">Custom</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row full">
+      <div><label>Description</label><input type="text" id="new-mon-desc" placeholder="What does this monitor?"></div>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:8px">
+      <button class="btn-g" onclick="saveNewMonitor()">💾 Save & Add Tab</button>
+      <button class="btn-s" onclick="document.getElementById('template-form').classList.remove('visible')">Cancel</button>
+    </div>
+  </div>
+  <div class="saved-monitors card" id="saved-monitors-card">
+    <div class="card-hdr"><h3>📌 Saved Monitors</h3><button class="btn-sm" onclick="loadSavedMonitors()">🔄 Refresh</button></div>
+    <div id="saved-monitors-list"><p style="color:var(--dim);font-family:var(--mono);font-size:.8rem">No custom monitors added yet.</p></div>
+  </div>
+  <div class="card">
+    <div class="card-hdr"><h3>📘 Setup Guide</h3></div>
+    <div style="font-family:var(--mono);font-size:.78rem;line-height:1.8;color:var(--dim)">
+      <p style="color:var(--text);margin-bottom:8px"><strong>To expose logs or status as HTTP:</strong></p>
+      <p>• <span style="color:var(--primary)">Windows:</span> Add static file serving to DC_ReplAPI.ps1 or create a simple IIS site pointing to C:\DC_Dashboard\</p>
+      <p>• <span style="color:var(--primary)">Ubuntu:</span> Run <code style="color:var(--ok)">python3 -m http.server 8000</code> in the log directory, or use nginx/apache</p>
+      <p>• <span style="color:var(--primary)">NTP Status JSON:</span> Run NTP_Monitor.ps1 (included below) which exports ntp_status.json to C:\DC_Dashboard\</p>
+      <p>• <span style="color:var(--primary)">Ubuntu Status JSON:</span> Run ubuntu_status.sh as a cron job every 1 minute — exposes /var/www/html/status.json</p>
+      <p style="margin-top:12px;color:var(--text)"><strong>PowerShell for NTP_Monitor.ps1:</strong></p>
+      <pre style="background:rgba(0,0,0,0.4);padding:10px;border-radius:6px;margin-top:6px;overflow-x:auto;color:var(--ok);font-size:.7rem">
+# NTP_Monitor.ps1 — run every 5 minutes via Task Scheduler
+# Queries ntpq -p and exports ntp_status.json
+
+$output = @{ RunAt = (Get-Date -Format "yyyy-MM-dd HH:mm:ss"); Clients = @() }
+try {
+  $ntpq = ntpq -p -n 2>$null
+  foreach ($line in $ntpq | Select-Object -Skip 2) {
+    if ($line -match '^[\*\+\-ox\s](\S+)\s+\S+\s+\d+\s+\d+\s+(\d+)\s+([\d\.]+)\s+([\d\.\-]+)\s+([\d\.]+)') {
+      $output.Clients += @{
+        Address  = $matches[1]; Reach = $matches[2]
+        Interval = $matches[3]; Offset = [float]$matches[4]
+        Jitter   = [float]$matches[5]
+        Status   = if([math]::Abs([float]$matches[4]) -lt 128){'ok'}elseif([math]::Abs([float]$matches[4]) -lt 512){'warn'}else{'crit'}
+        LastSeen = (Get-Date -Format "HH:mm:ss")
+      }
+    }
+  }
+} catch {}
+$output | ConvertTo-Json -Depth 3 | Out-File "C:\DC_Dashboard\ntp_status.json" -Encoding UTF8
+</pre>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  NOC Operations Platform v11.0 &nbsp;|&nbsp; Developed by <span>Jhonattan L. Jimenez</span> &nbsp;|&nbsp;
+  <span id="footer-summary">Loading…</span>
+</footer>
+
+</div><!-- /.wrap -->
+
+<!-- TOASTS -->
+<div class="toast-wrap" id="toasts"></div>
+
+<!-- DC ACTION MODAL -->
+<div class="modal-overlay" id="dc-modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-hdr"><h3 id="modal-title">DC Details</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+/* ════════════════════════════════════════════════
+   GLOBALS & STATE
+════════════════════════════════════════════════ */
+const STATE = {
+  dc: { data:[], lastRunID:null, sortCol:-1, sortDir:1, charts:{} },
+  ntp: { data:[], chart:null },
+  dns: { results:[], chart:null },
+  logs: { current:'ck', raw:'', urls:{ck:'dc_replication_monitor.txt', gcds:'gcds-sample.log', dc:'dc_replication_monitor.txt'} },
+  ubuntu: { cpuHistory:[], chart:null },
+  ollama: { url:'http://localhost:11434', model:'llama3.2', tokens:1024 },
+  pbx: { data:[], loaded:false },
+  alerts: { email:true, tg:true, teams:true }
+};
+const DC_CRITICAL = '192.0.2.7';
+let dcCharts = {};
+let ubuntuChart = null;
+let ntpDriftChart = null;
+let dnsChart = null;
+let refreshTimers = {};
+const REFRESH_INTERVALS = { dc:60, ntp:60, logs:30, ubuntu:60, gsync:120, pbx:60 };
+
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') }
+
+/* ════ TOASTS ════ */
+function toast(msg,type='info',ms=3200){
+  const w=document.getElementById('toasts');
+  const d=document.createElement('div');
+  d.className='toast '+(type==='ok'?'ok':type==='err'?'err':type==='warn'?'warn':'');
+  d.textContent=msg; w.appendChild(d);
+  setTimeout(()=>d.remove(),ms);
+}
+
+/* ════ ALERT CONFIG ════ */
+const ALERT_COUNTS = { email:0, tg:0, teams:0 };
+const SESSION_START = Date.now();
+
+const EMAIL_QUIPS = [
+  "Your inbox is still alive. For now.",
+  "Someone's reading these. Probably.",
+  "Spam filters are NOT happy with you.",
+  "That's a lot of 'URGENT' subject lines.",
+  "IT called. They want their inbox back.",
+  "Your email provider is starting to worry.",
+  "Bold move. Inbox zero was a myth anyway.",
+  "The on-call engineer has seen better days.",
+];
+const TG_QUIPS = [
+  "Jhonattan's phone is fine. Totally fine.",
+  "That notification sound is now a trauma trigger.",
+  "Phone battery: critically endangered.",
+  "He has read receipts. He knows.",
+  "The buzz count is getting personal.",
+  "Telegram bot is living its best life.",
+  "Phone is basically a pager at this point.",
+  "Do Not Disturb was a suggestion, apparently.",
+];
+const TEAMS_QUIPS = [
+  "Someone's status is now Do Not Disturb.",
+  "The 'Available' green dot has gone dark.",
+  "A meeting was almost scheduled. Almost.",
+  "Teams channel is filing a noise complaint.",
+  "The webhook is tired. Let it rest.",
+  "Every ping costs 0.003 braincells. Math adds up.",
+  "The @mentions are getting personal.",
+  "At least it's not another meeting invite.",
+];
+const TOTAL_QUIPS = [
+  "All quiet on the western front.",
+  "The network is screaming. You're listening.",
+  "This many alerts means job security. Probably.",
+  "The on-call rotation sends their regards.",
+  "Alert fatigue loading... please wait.",
+  "Have you tried turning the network off and on?",
+  "DEFCON level: send coffee.",
+  "Your infrastructure has feelings. They hurt.",
+  "The alerts are multiplying. Like gremlins.",
+  "At this point just move in to the NOC.",
+];
+
+function pickQuip(arr, count) {
+  if(count === 0) return arr[0];
+  return arr[Math.min(Math.floor(count / 3), arr.length - 1)];
+}
+
+function updateAlertCounters() {
+  const total = ALERT_COUNTS.email + ALERT_COUNTS.tg + ALERT_COUNTS.teams;
+  document.getElementById('count-email').textContent = ALERT_COUNTS.email;
+  document.getElementById('count-tg').textContent    = ALERT_COUNTS.tg;
+  document.getElementById('count-teams').textContent = ALERT_COUNTS.teams;
+  document.getElementById('count-total').textContent = total;
+  document.getElementById('quip-email').textContent  = pickQuip(EMAIL_QUIPS,  ALERT_COUNTS.email);
+  document.getElementById('quip-tg').textContent     = pickQuip(TG_QUIPS,     ALERT_COUNTS.tg);
+  document.getElementById('quip-teams').textContent  = pickQuip(TEAMS_QUIPS,  ALERT_COUNTS.teams);
+  document.getElementById('quip-total').textContent  = pickQuip(TOTAL_QUIPS,  total);
+  // animate the changed counter
+  ['count-email','count-tg','count-teams','count-total'].forEach(id=>{
+    const el=document.getElementById(id);
+    el.style.transform='scale(1.3)';
+    setTimeout(()=>el.style.transform='',200);
+  });
+}
+
+function updateSessionTimer() {
+  const elapsed = Date.now() - SESSION_START;
+  const h = Math.floor(elapsed / 3600000);
+  const m = Math.floor((elapsed % 3600000) / 60000);
+  const s = Math.floor((elapsed % 60000) / 1000);
+  const pad = n => String(n).padStart(2,'0');
+  document.getElementById('count-uptime').textContent = h > 0
+    ? `${h}:${pad(m)}:${pad(s)}`
+    : `${pad(m)}:${pad(s)}`;
+}
+setInterval(updateSessionTimer, 1000);
+
+function toggleAlertPill(el, key) {
+  STATE.alerts[key] = !STATE.alerts[key];
+  const active = STATE.alerts[key];
+  el.classList.toggle(`active-${key}`, active);
+  el.classList.toggle('off', !active);
+  // sync hidden toggles
+  const toggle = document.getElementById(key==='email'?'email-toggle':key==='tg'?'tg-toggle':'teams-toggle');
+  if(toggle) { toggle.classList.toggle('on', active); }
+  toast(`${key} alerts ${active ? 'enabled' : 'disabled'}`, active ? 'ok' : 'warn', 2000);
+}
+
+function toggleAlert(el, key) {
+  el.classList.toggle('on');
+  STATE.alerts[key] = el.classList.contains('on');
+  // sync pill
+  const pill = document.getElementById('pill-'+key);
+  if(pill) { pill.classList.toggle(`active-${key}`, STATE.alerts[key]); pill.classList.toggle('off', !STATE.alerts[key]); }
+}
+
+function testAlerts() {
+  ALERT_COUNTS.email++;
+  ALERT_COUNTS.tg++;
+  ALERT_COUNTS.teams++;
+  updateAlertCounters();
+  toast('🔔 Test blast sent to all channels — sorry in advance', 'warn', 3500);
+  addGlobalEvent('ok','🔔','Alert test triggered — everyone now hates you a little');
+}
+
+function sendAlert(title, msg) {
+  const cfg = STATE.alerts;
+  if(cfg.tg) {
+    fetch('/api/notifications/send', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({title, message: msg})
+    }).then((r) => r.json().then((data) => ({ok: r.ok, data}))).then((res) => {
+      if (res.ok) {
+        ALERT_COUNTS.tg++;
+        updateAlertCounters();
+        addGlobalEvent('info', '✈️', 'Telegram notification queued');
+      } else {
+        throw new Error(res.data?.detail || 'failed');
+      }
+    }).catch((e) => {
+      addGlobalEvent('err', '✈️', 'Telegram send failed: ' + (e.message || 'error'));
+    });
+  }
+  if(cfg.email) { ALERT_COUNTS.email++; updateAlertCounters(); }
+  if(cfg.teams) { ALERT_COUNTS.teams++; updateAlertCounters(); }
+}
+
+/* ════ TABS ════ */
+function switchTab(id, btn){
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  if(btn) btn.classList.add('active');
+  // lazy load on first open
+  if(id==='ntp' && !STATE.ntp.loaded){ loadNTPData(); STATE.ntp.loaded=true; }
+  if(id==='logs' && !STATE.logs.loaded){ refreshCurrentLog(); STATE.logs.loaded=true; }
+  if(id==='ubuntu' && !STATE.ubuntu.loaded){ loadUbuntuData(); STATE.ubuntu.loaded=true; }
+  if(id==='gsync' && !STATE.gsync_loaded){ loadGSyncData(); STATE.gsync_loaded=true; }
+  if(id==='pbx' && !STATE.pbx.loaded){ loadPBXData(); STATE.pbx.loaded=true; }
+  if(id==='helpdesk' && !STATE.helpdesk.loaded){ loadHelpdeskTickets(); STATE.helpdesk.loaded=true; }
+}
+
+/* ════ HELPDESK ════ */
+
+/* ═════════════════════════════════ PBX / MITEL SNMP ═════════════════════════════════ */
+async function loadPBXData() {
+  const el = document.getElementById('pbx-status');
+  if (el) el.textContent = 'Loading…';
+  try {
+    const r = await fetch('/api/pbx/status');
+    const data = await r.json();
+    renderPBXTable(data);
+    renderPBXCharts(data);
+    if (el) el.textContent = `Loaded ${data.length} PBXs`;
+    addGlobalEvent('info', '📞', `PBX status refreshed — ${data.length} devices`);
+  } catch (e) {
+    if (el) el.textContent = 'Failed to load';
+    addGlobalEvent('err', '📞', 'PBX load failed: ' + e.message);
+  }
+}
+
+async function loadPBXSNMP() {
+  const el = document.getElementById('pbx-status');
+  if (el) el.textContent = 'Loading SNMP…';
+  try {
+    const r = await fetch('/api/pbx/snmp/walk');
+    const data = await r.json();
+    const feed = document.getElementById('pbx-events');
+    if (feed) {
+      feed.innerHTML = '<pre style="margin:0;white-space:pre-wrap">' + JSON.stringify(data, null, 2) + '</pre>';
+    }
+    if (el) el.textContent = 'SNMP walk loaded';
+    addGlobalEvent('info', '📡', 'SNMP walk retrieved for Mitel PBX');
+  } catch (e) {
+    if (el) el.textContent = 'SNMP failed';
+    addGlobalEvent('err', '📡', 'SNMP walk failed: ' + e.message);
+  }
+}
+
+function renderPBXTable(data) {
+  const tbody = document.getElementById('pbx-tbody');
+  if (!tbody) return;
+  let healthy = 0, degraded = 0, critical = 0;
+  tbody.innerHTML = data.map(pbx => {
+    const status = pbx.status || 'unknown';
+    if (status === 'healthy') healthy++;
+    else if (status === 'degraded') degraded++;
+    else if (status === 'critical') critical++;
+    const statusClass = status === 'healthy' ? 'ok' : (status === 'degraded' ? 'warn' : 'err');
+    return `<tr>
+      <td>${pbx.name || '-'}</td>
+      <td><code>${pbx.host || '-'}</code></td>
+      <td>${pbx.model || '-'}</td>
+      <td><span class="pdot ${statusClass}"></span> ${status}</td>
+      <td>${pbx.uptime_pct || 0}%</td>
+      <td>${pbx.active_calls || 0}</td>
+      <td><button class="btn-sm btn-s" onclick="showPBXDetails('${pbx.host}')">Details</button></td>
+    </tr>`;
+  }).join('');
+  document.getElementById('pbx-total').textContent = data.length;
+  document.getElementById('pbx-healthy').textContent = healthy;
+  document.getElementById('pbx-degraded').textContent = degraded;
+  document.getElementById('pbx-critical').textContent = critical;
+}
+
+function renderPBXCharts(data) {
+  const statusCtx = document.getElementById('pbxStatusChart')?.getContext('2d');
+  const callsCtx = document.getElementById('pbxCallsChart')?.getContext('2d');
+  if (!statusCtx || !callsCtx) return;
+
+  const statusCounts = { healthy: 0, degraded: 0, critical: 0, unknown: 0 };
+  const labels = data.map(d => d.name || d.host);
+  const callsData = data.map(d => d.active_calls || 0);
+
+  data.forEach(d => { statusCounts[d.status || 'unknown']++; });
+
+  if (window.pbxStatusChart) window.pbxStatusChart.destroy();
+  if (window.pbxCallsChart) window.pbxCallsChart.destroy();
+
+  window.pbxStatusChart = new Chart(statusCtx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Healthy', 'Degraded', 'Critical', 'Unknown'],
+      datasets: [{
+        data: [statusCounts.healthy, statusCounts.degraded, statusCounts.critical, statusCounts.unknown],
+        backgroundColor: ['var(--ok)', 'var(--warn)', 'var(--err)', 'var(--dim)']
+      }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 10 } } } } }
+  });
+
+  window.pbxCallsChart = new Chart(callsCtx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{ label: 'Active Calls', data: callsData, backgroundColor: 'var(--primary)' }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true } } }
+  });
+}
+
+function sortPBX(col) {
+  const tbody = document.getElementById('pbx-tbody');
+  const rows = Array.from(tbody.rows);
+  const isNumeric = [4, 5].includes(col);
+  const asc = tbody.dataset.sortCol === String(col) && tbody.dataset.sortDir === 'asc';
+  tbody.dataset.sortCol = col;
+  tbody.dataset.sortDir = asc ? 'desc' : 'asc';
+  rows.sort((a, b) => {
+    const av = a.cells[col].textContent.trim();
+    const bv = b.cells[col].textContent.trim();
+    return (isNumeric ? parseFloat(av) - parseFloat(bv) : av.localeCompare(bv)) * (asc ? -1 : 1);
+  });
+  rows.forEach(r => tbody.appendChild(r));
+}
+
+function showPBXDetails(host) {
+  toast('PBX details for ' + host + ' — see SNMP Walk button', 'info', 3000);
+}
+
+function loadHelpdeskTickets(){
+  const el=document.getElementById('helpdesk-status'); if(el) el.textContent='Loading…';
+  fetch('/api/helpdesk/tickets').then(r=>r.json()).then(data=>renderHelpdeskTickets(data)).catch(()=>{renderHelpdeskTickets([]);}).finally(()=>{ const el=document.getElementById('helpdesk-status'); if(el) el.textContent=''; });
+}
+function renderHelpdeskTickets(data){
+  const tbody = document.getElementById('helpdesk-tbody');
+  if (!tbody) return;
+  const items = Array.isArray(data) ? data : (data && data.tickets ? data.tickets : []);
+  const rows = items.map(t => `<tr><td>${t.id || '--'}</td><td>${t.name || '--'}</td><td>${t.email || '--'}</td><td>${t.subject || '--'}</td><td>${t.status || '--'}</td><td>${t.created || '--'}</td></tr>`).join('');
+  tbody.innerHTML = rows || `<tr><td colspan="6" style="text-align:center;color:var(--dim);padding:24px">No tickets found.</td></tr>`;
+}
+function loadHelpdeskTicket(){
+  const id=document.getElementById('helpdesk-ticket-id')?.value?.trim(); if(!id){ toast('Enter a ticket ID','warn'); return; }
+  fetch('/api/helpdesk/tickets/'+encodeURIComponent(id)).then(r=>r.json()).then(data=> toast('Ticket '+id+': '+(data.subject||data.title||'loaded'),'ok')).catch(()=> toast('Ticket not found','warn'));
+}
+function openCreateTicket(){ document.getElementById('helpdesk-create').style.display='block'; }
+function submitTicket(){
+  const body={name:document.getElementById('h-name').value, email:document.getElementById('h-email').value, subject:document.getElementById('h-subject').value, message:document.getElementById('h-message').value};
+  fetch('/api/helpdesk/tickets',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>r.json()).then(data=>{ toast('Ticket created','ok'); document.getElementById('helpdesk-create').style.display='none'; loadHelpdeskTickets(); }).catch(()=> toast('Create failed','warn'));
+}
+/* ════ EVENTS / FEED ════ */
+const allEvents = { dc:[], ntp:[], logs:[], gsync:[], ubuntu:[] };
+function addEvent(feed, level, icon, msg){
+  const time = new Date().toLocaleTimeString();
+  allEvents[feed].unshift({level,icon,time,msg});
+  if(allEvents[feed].length>100) allEvents[feed].pop();
+  renderFeed(feed);
+}
+function addGlobalEvent(level,icon,msg){ addEvent('dc',level,icon,msg); }
+function clearEvents(feed){ allEvents[feed]=[]; renderFeed(feed); }
+function renderFeed(feed){
+  const el = document.getElementById(feed+'-events');
+  if(!el) return;
+  if(!allEvents[feed].length){ el.innerHTML='<div class="evt-item"><span class="evt-msg" style="color:var(--dim)">No events</span></div>'; return; }
+  el.innerHTML = allEvents[feed].slice(0,50).map(e=>
+    `<div class="evt-item ${e.level}"><span class="evt-icon">${e.icon}</span><span class="evt-time">${e.time}</span><span class="evt-msg">${e.msg}</span></div>`
+  ).join('');
+}
+
+function updateBadge(id, count){
+  const b = document.getElementById('badge-'+id);
+  if(!b) return;
+  if(count>0){ b.textContent=count; b.classList.remove('hidden'); }
+  else { b.classList.add('hidden'); }
+}
+
+/* ════ HEADER UPDATE ════ */
+function updateHeader(){
+  const ok = STATE.dc.data.filter(d=>d.Status==='OK').length;
+  const err = STATE.dc.data.filter(d=>d.Status==='ERROR').length;
+  const total = STATE.dc.data.length;
+  document.getElementById('hdr-dc-count').textContent = `DCs: ${ok}/${total} OK`;
+  document.getElementById('last-update').textContent = new Date().toLocaleTimeString();
+  const dot = document.getElementById('overall-dot');
+  const ostat = document.getElementById('overall-status');
+  if(err>0){ dot.className='sdot err'; ostat.textContent=`${err} Alert(s) Active`; }
+  else { dot.className='sdot'; ostat.textContent='All Systems OK'; }
+  document.getElementById('hdr-alerts').textContent = `Alerts: ${err}`;
+  document.getElementById('footer-summary').textContent = `${total} DCs • ${err} errors • Last scan: ${new Date().toLocaleTimeString()}`;
+}
+
+/* ════════════════════════════════════════════════
+   TAB 1 — DC REPLICATION
+════════════════════════════════════════════════ */
+function loadDCData(){
+  const btn = document.getElementById('dc-tbody');
+  fetch('/api/dc_status?'+Date.now(),{cache:'no-store'})
+    .then(r=>{ if(!r.ok) throw new Error('dc_status.json not found'); return r.json(); })
+    .then(payload=>{
+      const data = Array.isArray(payload)?payload:(payload.DCs||[]);
+      const runID = payload.RunID||null;
+      STATE.dc.data = data;
+      renderDCDashboard(data, payload.RunAt||null);
+      updateHeader();
+      const errCount = data.filter(d=>d.Status==='ERROR').length;
+      updateBadge('dc',errCount);
+      if(errCount>0) addEvent('dc','crit','❌',`${errCount} DC(s) in ERROR state after scan`);
+      else addEvent('dc','ok','✅','All DCs healthy');
+      toast('DC data refreshed','ok',2000);
+    })
+    .catch(err=>{ toast('dc_status.json not found — using demo','warn',3000); loadDCDemo(); });
+}
+
+function renderDCDashboard(data, runAt){
+  const ok=data.filter(d=>d.Status==='OK').length;
+  const err=data.filter(d=>d.Status==='ERROR').length;
+  document.getElementById('dc-total').textContent=data.length;
+  document.getElementById('dc-ok').textContent=ok;
+  document.getElementById('dc-err').textContent=err;
+  document.getElementById('dc-uptime').textContent=data.length?Math.round(ok/data.length*100)+'%':'100%';
+
+  // Critical DC card
+  const crit=data.find(d=>d.IPAddress===DC_CRITICAL||d.DCName==='DC-CRITICAL-01');
+  const critCard=document.getElementById('crit-card');
+  const critDot=document.getElementById('crit-dot');
+  const critDet=document.getElementById('crit-details');
+  if(crit){
+    const isOk=crit.Status==='OK';
+    critCard.classList.toggle('ok',isOk);
+    critDot.classList.toggle('err',!isOk);
+    critDet.innerHTML=`Site: <span style="color:var(--primary)">${esc(crit.Site||'N/A')}</span> &nbsp;|&nbsp; `+
+      `Replication: <span style="color:${isOk?'var(--ok)':'var(--err)'}">${esc(crit.LastReplication||'Unknown')}</span> &nbsp;|&nbsp; `+
+      `Response: <span class="${getRespClass(crit.ResponseTime)}">${esc(crit.ResponseTime||'N/A')}</span>`;
+  } else { critDet.textContent='DC-CRITICAL-01 not found'; }
+
+  renderDCTable(data);
+  updateDCCharts(data);
+}
+
+function getRespClass(rt){ const t=parseFloat(rt); if(isNaN(t)) return 'resp-na'; if(t<=2) return 'resp-fast'; if(t<=5) return 'resp-mid'; return 'resp-slow'; }
+
+function renderDCTable(data){
+  const tbody=document.getElementById('dc-tbody');
+  tbody.innerHTML='';
+  data.forEach((dc,idx)=>{
+    const isErr=dc.Status==='ERROR';
+    const tr=document.createElement('tr');
+    if(isErr) tr.className='err-row';
+    tr.innerHTML=
+      `<td style="color:${isErr?'var(--err)':'var(--primary)'};font-weight:700">${esc(dc.DCName)}</td>`+
+      `<td>${esc(dc.IPAddress||'N/A')}</td>`+
+      `<td style="color:var(--dim)">${esc(dc.Site||'N/A')}</td>`+
+      `<td style="max-width:220px;overflow:hidden;text-overflow:ellipsis" title="${esc(dc.LastReplication||'')}">${esc(dc.LastReplication||'Unknown')}</td>`+
+      `<td><span class="${isErr?'tag tag-err':'tag tag-ok'}">${esc(dc.Status)}</span></td>`+
+      `<td class="${getRespClass(dc.ResponseTime)}">${esc(dc.ResponseTime||'N/A')}</td>`+
+      `<td style="white-space:nowrap">`+
+        `<button class="btn-sm" onclick="openDCModal(${idx})">🔍 Query</button>`+
+        (dc.IPAddress?` <button class="btn-sm btn-w" onclick="openReplModal(${idx})">⚡ Repl</button>`:'')
+      +`</td>`;
+    tbody.appendChild(tr);
+  });
+  filterDCTable();
+}
+
+function filterDCTable(){
+  const sf=document.getElementById('dc-status-filter').value;
+  const q=document.getElementById('dc-search').value.toLowerCase().trim();
+  document.querySelectorAll('#dc-tbody tr').forEach(row=>{
+    if(!row.cells||row.cells.length<5) return;
+    const okS=sf==='all'||row.cells[4].textContent.includes(sf);
+    const okQ=!q||row.cells[0].textContent.toLowerCase().includes(q)||row.cells[1].textContent.toLowerCase().includes(q)||row.cells[2].textContent.toLowerCase().includes(q);
+    row.style.display=okS&&okQ?'':'none';
+  });
+}
+
+let dcSortCol=-1, dcSortDir=1;
+function sortDC(col){
+  if(dcSortCol===col){ dcSortDir*=-1; } else { dcSortDir=1; dcSortCol=col; }
+  const tbody=document.getElementById('dc-tbody');
+  const rows=Array.from(tbody.querySelectorAll('tr'));
+  rows.sort((a,b)=>{
+    const av=a.cells[col]?.textContent.trim()||'';
+    const bv=b.cells[col]?.textContent.trim()||'';
+    if(col===5){const an=parseFloat(av),bn=parseFloat(bv);if(!isNaN(an)&&!isNaN(bn))return(an-bn)*dcSortDir;}
+    return av.localeCompare(bv)*dcSortDir;
+  });
+  rows.forEach(r=>tbody.appendChild(r));
+}
+
+function destroyChart(c){ try{if(c)c.destroy();}catch(e){} return null; }
+function updateDCCharts(data){
+  const ok=data.filter(d=>d.Status==='OK').length, err=data.length-ok;
+  dcCharts.status=destroyChart(dcCharts.status);
+  dcCharts.status=new Chart(document.getElementById('dcStatusChart').getContext('2d'),{type:'doughnut',data:{labels:['Healthy','Errors'],datasets:[{data:[ok,err],backgroundColor:['#00ff9d','#ff3860'],borderColor:['#00cc7a','#cc2d4a'],borderWidth:2}]},options:{responsive:true,cutout:'70%',plugins:{legend:{labels:{color:'#e0e0ff',font:{size:11}}},title:{display:true,text:'DC Health',color:'#00f3ff',font:{size:12}}}}});
+  const sites={};
+  data.forEach(d=>{ const s=d.Site||'?'; sites[s]=(sites[s]||0)+1; });
+  dcCharts.site=destroyChart(dcCharts.site);
+  dcCharts.site=new Chart(document.getElementById('dcSiteChart').getContext('2d'),{type:'bar',data:{labels:Object.keys(sites),datasets:[{label:'DCs',data:Object.values(sites),backgroundColor:'rgba(0,243,255,0.45)',borderColor:'#00f3ff',borderWidth:1,borderRadius:3}]},options:{responsive:true,scales:{y:{beginAtZero:true,ticks:{color:'#e0e0ff'},grid:{color:'rgba(255,255,255,0.04)'}},x:{ticks:{color:'#e0e0ff',maxRotation:40},grid:{color:'rgba(255,255,255,0.03)'}}},plugins:{legend:{labels:{color:'#e0e0ff'}},title:{display:true,text:'DCs by Site',color:'#00f3ff',font:{size:12}}}}});
+  const bkt={0:0,'1ms':0,'2ms':0,'3-5ms':0,'6-20ms':0,'21+ms':0,'N/A':0};
+  data.forEach(d=>{ const t=parseFloat(d.ResponseTime); if(isNaN(t))bkt['N/A']++; else if(t===0)bkt[0]++; else if(t<=1)bkt['1ms']++; else if(t<=2)bkt['2ms']++; else if(t<=5)bkt['3-5ms']++; else if(t<=20)bkt['6-20ms']++; else bkt['21+ms']++; });
+  dcCharts.resp=destroyChart(dcCharts.resp);
+  dcCharts.resp=new Chart(document.getElementById('dcRespChart').getContext('2d'),{type:'bar',data:{labels:Object.keys(bkt),datasets:[{label:'DC Count',data:Object.values(bkt),backgroundColor:['#00ff9d','#22e88c','#66cc88','#ffcc00','#ff6600','#ff3860','#555'],borderRadius:3}]},options:{responsive:true,scales:{y:{beginAtZero:true,ticks:{color:'#e0e0ff'},grid:{color:'rgba(255,255,255,0.04)'}},x:{ticks:{color:'#e0e0ff'},grid:{display:false}}},plugins:{legend:{labels:{color:'#e0e0ff'}},title:{display:true,text:'Response Time',color:'#ff00c8',font:{size:12}}}}});
+}
+
+function forceReplAll(){
+  const healthy=STATE.dc.data.filter(d=>d.Status==='OK'&&d.IPAddress);
+  if(!healthy.length){toast('No healthy DCs found','err');return;}
+  if(!confirm(`Force replication for all ${healthy.length} healthy DCs?`)) return;
+  const host=window.location.hostname;
+  let done=0, errors=0;
+  toast(`Sending replication to ${healthy.length} DCs…`,'warn',4000);
+  healthy.forEach(dc=>{
+    fetch(`http://${window.location.hostname}/forcerepl`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({DCName:dc.DCName,IPAddress:dc.IPAddress})})
+    .then(r=>r.json()).then(r=>{ done++; if(!r.Success)errors++; if(done===healthy.length) toast(`✅ All ${done} done. Errors: ${errors}`, errors?'warn':'ok',5000); })
+    .catch(()=>{ errors++; done++; if(done===healthy.length) toast('⚠️ API not running on :8080','err',6000); });
+  });
+}
+
+function exportDCCSV(){
+  const hdr=['DC Name','IP','Site','Replication','Status','Response'];
+  const rows=[hdr];
+  document.querySelectorAll('#dc-tbody tr').forEach(row=>{
+    if(row.style.display==='none') return;
+    rows.push(Array.from(row.querySelectorAll('td')).slice(0,6).map(td=>`"${td.textContent.replace(/,/g,';')}"`));
+  });
+  const csv=rows.map(r=>r.join(',')).join('\r\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv'}));
+  a.download=`dc_status_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  toast('CSV exported','ok',2000);
+}
+
+function loadDCDemo(){
+  const demo=[
+    {DCName:'DC-A',IPAddress:'192.0.2.4',Site:'SITE-A',Status:'OK',LastReplication:'Healthy',ResponseTime:'1ms',Timestamp:Date.now()},
+    {DCName:'DC-B',IPAddress:'192.0.2.5',Site:'SITE-B',Status:'ERROR',LastReplication:'Network Unreachable',ResponseTime:'N/A',Timestamp:Date.now()},
+    {DCName:'DC-C',IPAddress:'192.0.2.6',Site:'SITE-C',Status:'ERROR',LastReplication:'LDAP Service Down',ResponseTime:'2ms',Timestamp:Date.now()},
+    {DCName:'SAMPLE-STX-DC',IPAddress:'192.0.2.7',Site:'SITE-G',Status:'OK',LastReplication:'Healthy (repadmin skipped)',ResponseTime:'3ms',Timestamp:Date.now()},
+    {DCName:'SAMPLE-DC',IPAddress:'192.0.2.8',Site:'SITE-H',Status:'OK',LastReplication:'Healthy',ResponseTime:'84ms',Timestamp:Date.now()},
+    {DCName:'DC-D',IPAddress:null,Site:'SITE-D',Status:'ERROR',LastReplication:'Connectivity Check Failed',ResponseTime:'N/A',Timestamp:Date.now()}
+  ];
+  STATE.dc.data=demo;
+  renderDCDashboard(demo,'Demo Mode');
+  updateHeader();
+}
+
+/* MODALS */
+function openDCModal(idx){
+  const dc=STATE.dc.data[idx];
+  if(!dc) return;
+  const isErr=dc.Status==='ERROR';
+  document.getElementById('modal-title').textContent='DC Details — '+dc.DCName;
+  document.getElementById('modal-body').innerHTML=`
+    <div class="modal-field"><span class="mf-lbl">DC Name</span><span class="mf-val">${esc(dc.DCName)}</span></div>
+    <div class="modal-field"><span class="mf-lbl">IP Address</span><span class="mf-val ${dc.IPAddress?'':'err'}">${esc(dc.IPAddress||'None')}</span></div>
+    <div class="modal-field"><span class="mf-lbl">Site</span><span class="mf-val">${esc(dc.Site||'N/A')}</span></div>
+    <div class="modal-field"><span class="mf-lbl">Status</span><span class="mf-val ${isErr?'err':'ok'}">${esc(dc.Status)}</span></div>
+    <div class="modal-field"><span class="mf-lbl">Replication</span><span class="mf-val ${isErr?'err':'ok'}">${esc(dc.LastReplication||'Unknown')}</span></div>
+    <div class="modal-field"><span class="mf-lbl">Response</span><span class="mf-val">${esc(dc.ResponseTime||'N/A')}</span></div>
+    <div class="modal-actions">
+      ${dc.IPAddress?`<button class="btn-w" onclick="closeModal();openReplModal(${idx})">⚡ Force Replication</button>`:''}
+      <button onclick="aiAskAboutDC('${esc(dc.DCName)}')">🤖 Ask AI</button>
+      <button class="btn-s" onclick="closeModal()">Close</button>
+    </div>
+  `;
+  document.getElementById('dc-modal').classList.add('open');
+}
+
+function openReplModal(idx){
+  const dc=STATE.dc.data[idx];
+  if(!dc||!dc.IPAddress) return;
+  document.getElementById('modal-title').textContent='Force Replication — '+dc.DCName;
+  document.getElementById('modal-body').innerHTML=`
+    <p style="font-family:var(--mono);font-size:.8rem;color:var(--dim);margin-bottom:12px;line-height:1.7">This calls <code style="color:var(--ok)">repadmin /syncall "${esc(dc.DCName)}" /AdeP</code> via DC_ReplAPI.ps1 on port 8080.</p>
+    <div class="modal-field"><span class="mf-lbl">Target DC</span><span class="mf-val" style="color:var(--primary)">${esc(dc.DCName)}</span></div>
+    <div class="modal-field"><span class="mf-lbl">IP</span><span class="mf-val">${esc(dc.IPAddress)}</span></div>
+    <div class="modal-field"><span class="mf-lbl">Status</span><span class="mf-val ${dc.Status==='ERROR'?'err':'ok'}">${esc(dc.Status)}</span></div>
+    <div id="repl-status-box" class="repl-status-box"></div>
+    <div class="modal-actions">
+      <button class="btn-w" id="repl-confirm-btn" onclick="confirmReplAPI(${idx})">⚡ Confirm</button>
+      <button class="btn-s" onclick="closeModal()">Cancel</button>
+    </div>
+  `;
+  document.getElementById('dc-modal').classList.add('open');
+}
+
+function confirmReplAPI(idx){
+  const dc=STATE.dc.data[idx];
+  if(!dc) return;
+  const btn=document.getElementById('repl-confirm-btn');
+  const box=document.getElementById('repl-status-box');
+  if(btn) btn.disabled=true;
+  box.className='repl-status-box visible running';
+  box.textContent='⚡ Sending replication request…';
+  fetch(`http://${window.location.hostname}/forcerepl`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({DCName:dc.DCName,IPAddress:dc.IPAddress})})
+  .then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+  .then(result=>{
+    if(result.Success){ box.className='repl-status-box visible success'; box.textContent='✅ Replication triggered for '+dc.DCName+'\n\n'+(result.Output||'repadmin /syncall completed'); toast('Replication triggered','ok',4000); addEvent('dc','ok','⚡','Force replication → '+dc.DCName+' SUCCESS'); }
+    else { box.className='repl-status-box visible failed'; box.textContent='⚠️ Issues:\n\n'+(result.Error||result.Output||'Unknown'); toast('Replication issue','warn',5000); }
+    if(btn){btn.textContent='✅ Done';}
+  })
+  .catch(()=>{
+    box.className='repl-status-box visible failed';
+    box.textContent='❌ API not reachable on :8080\n\nMake sure DC_ReplAPI.ps1 is running as Administrator.\n\nDirect command:\n  repadmin /syncall "'+dc.DCName+'" /AdeP\n\nOr via Telegram:\n  /forcerepl '+dc.DCName;
+    toast('API not running on :8080','err',6000);
+    if(btn){btn.disabled=false;btn.textContent='⚡ Retry';}
+  });
+}
+
+function closeModal(){ document.getElementById('dc-modal').classList.remove('open'); }
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
+
+/* ════════════════════════════════════════════════
+   TAB 2 — NTP MONITOR
+════════════════════════════════════════════════ */
+let ntpData = [];
+
+function loadNTPData(){
+  fetch('/api/ntp_status?'+Date.now(),{cache:'no-store'})
+  .then(r=>{ if(!r.ok) throw new Error('ntp_status.json not found'); return r.json(); })
+  .then(data=>{
+    ntpData = Array.isArray(data)?data:(data.Clients||[]);
+    renderNTPTable();
+    updateNTPStats();
+    buildNTPChart();
+    document.getElementById('hdr-ntp-count').textContent = `NTP Clients: ${ntpData.length}`;
+    const criticals = ntpData.filter(c=>c.Status==='crit').length;
+    updateBadge('ntp', criticals);
+    if(criticals>0) addEvent('ntp','crit','⏱',`${criticals} NTP client(s) with critical drift`);
+    toast('NTP data loaded','ok',2000);
+  })
+  .catch(()=>{
+    toast('ntp_status.json not found — run NTP_Monitor.ps1','warn',4000);
+    loadNTPDemo();
+  });
+
+  // Update clock
+  updateNTPClock();
+}
+
+function updateNTPClock(){
+  const now = new Date();
+  document.getElementById('ntp-date').textContent = now.toLocaleDateString('en-US',{weekday:'short',year:'numeric',month:'short',day:'numeric'});
+  document.getElementById('ntp-time').textContent = now.toLocaleTimeString();
+}
+
+function ipToNum(ip){
+  const p=ip.split('.').map(Number);
+  if(p.length!==4||p.some(isNaN)) return Infinity;
+  return ((p[0]<<24)|(p[1]<<16)|(p[2]<<8)|p[3])>>>0;
+}
+
+function renderNTPTable(){
+  const sort = document.getElementById('ntp-sort')?.value||'ip';
+  const tbody = document.getElementById('ntp-tbody');
+  let d = [...ntpData];
+  if(sort==='ip') d.sort((a,b)=>ipToNum(a.Address||'')-ipToNum(b.Address||''));
+  else if(sort==='drift') d.sort((a,b)=>Math.abs(a.Offset||0)-Math.abs(b.Offset||0));
+  else if(sort==='status') d.sort((a,b)=>(a.Status||'').localeCompare(b.Status||''));
+  else if(sort==='last') d.sort((a,b)=>(b.LastSeen||'').localeCompare(a.LastSeen||''));
+
+  const search = document.getElementById('ntp-search')?.value.toLowerCase()||'';
+  const sf = document.getElementById('ntp-filter-status')?.value||'all';
+  d = d.filter(c=>(!search||c.Address.includes(search))&&(sf==='all'||c.Status===sf));
+
+  if(!d.length){ tbody.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--dim);padding:24px">No clients match filter</td></tr>'; return; }
+
+  tbody.innerHTML = d.map(c=>{
+    const drift = parseFloat(c.Offset||0);
+    const driftClass = c.Status==='crit'?'resp-slow':c.Status==='warn'?'resp-mid':'resp-fast';
+    const statusTag = c.Status==='crit'?'tag-err':c.Status==='warn'?'tag-warn':'tag-ok';
+    const statusText = c.Status==='crit'?'Critical':c.Status==='warn'?'Warning':'OK';
+    const dropRate = c.Drop&&c.Reach?Math.round((c.Drop/c.Reach)*100)+'%':'0%';
+    return `<tr class="${c.Status==='crit'?'err-row':''}">
+      <td style="font-family:var(--mono);color:var(--primary)">${esc(c.Address||'--')}</td>
+      <td><span class="tag ${statusTag}">${statusText}</span></td>
+      <td style="color:var(--dim)">${esc(c.NTPServer||'local')}</td>
+      <td class="${driftClass}">${isNaN(drift)?'--':drift.toFixed(2)+' ms'}</td>
+      <td>${esc(c.Reach||'--')}</td>
+      <td>${dropRate}</td>
+      <td>${esc(c.Interval||'--')} s</td>
+      <td style="color:var(--dim)">${esc(c.LastSeen||'--')}</td>
+    </tr>`;
+  }).join('');
+}
+
+function updateNTPStats(){
+  const ok = ntpData.filter(c=>c.Status==='ok').length;
+  const warn = ntpData.filter(c=>c.Status==='warn').length;
+  const crit = ntpData.filter(c=>c.Status==='crit').length;
+  document.getElementById('ntp-total').textContent = ntpData.length;
+  document.getElementById('ntp-ok').textContent = ok;
+  document.getElementById('ntp-warn').textContent = warn;
+  document.getElementById('ntp-crit').textContent = crit;
+}
+
+function buildNTPChart(){
+  const bins={'<1ms':0,'1-10ms':0,'10-50ms':0,'50-128ms':0,'128-512ms':0,'>512ms':0,'Unknown':0};
+  ntpData.forEach(c=>{
+    const d=Math.abs(parseFloat(c.Offset||0));
+    if(isNaN(d)) bins['Unknown']++;
+    else if(d<1) bins['<1ms']++;
+    else if(d<10) bins['1-10ms']++;
+    else if(d<50) bins['10-50ms']++;
+    else if(d<128) bins['50-128ms']++;
+    else if(d<512) bins['128-512ms']++;
+    else bins['>512ms']++;
+  });
+  ntpDriftChart=destroyChart(ntpDriftChart);
+  ntpDriftChart=new Chart(document.getElementById('ntpDriftChart').getContext('2d'),{type:'bar',data:{labels:Object.keys(bins),datasets:[{label:'Clients',data:Object.values(bins),backgroundColor:['#00ff9d','#22e88c','#66cc88','#ffcc00','#ff9900','#ff3860','#555'],borderRadius:3}]},options:{responsive:true,scales:{y:{beginAtZero:true,ticks:{color:'#e0e0ff'},grid:{color:'rgba(255,255,255,0.04)'}},x:{ticks:{color:'#e0e0ff'},grid:{display:false}}},plugins:{legend:{labels:{color:'#e0e0ff'}},title:{display:true,text:'NTP Drift Distribution (all clients)',color:'#00f3ff',font:{size:12}}}}});
+}
+
+function filterNTP(){ renderNTPTable(); }
+
+function loadNTPDemo(){
+  const demo=[];
+  const nets=['10.0.','10.128.','10.129.','10.1.','192.168.1.'];
+  for(let i=0;i<25;i++){
+    const net=nets[i%nets.length];
+    const offset=(Math.random()*600-300);
+    const status=Math.abs(offset)>512?'crit':Math.abs(offset)>128?'warn':'ok';
+    demo.push({Address:`${net}${10+i}`,Status:status,NTPServer:'192.0.2.9',Offset:offset.toFixed(3),Jitter:(Math.random()*10).toFixed(3),Reach:377,Drop:Math.floor(Math.random()*5),Interval:1024,LastSeen:new Date().toLocaleTimeString()});
+  }
+  ntpData=demo;
+  renderNTPTable();
+  updateNTPStats();
+  buildNTPChart();
+  document.getElementById('hdr-ntp-count').textContent=`NTP Clients: ${demo.length} (demo)`;
+}
+
+/* ════════════════════════════════════════════════
+   TAB 3 — DNS BENCHMARK
+════════════════════════════════════════════════ */
+let dnsResults = [];
+
+async function runDNSBenchmark(){
+  const btn = document.getElementById('dns-bench-btn');
+  const status = document.getElementById('dns-bench-status');
+  if(!STATE.dc.data.length){ toast('Load DC data first (DC Replication tab)','warn'); return; }
+
+  const domain = document.getElementById('dns-test-domain').value || 'example.net';
+  const count = parseInt(document.getElementById('dns-test-count').value)||10;
+  const dcs = STATE.dc.data.filter(d=>d.IPAddress&&d.Status==='OK');
+
+  btn.disabled=true; btn.textContent='🔄 Running…';
+  status.textContent=`Testing ${dcs.length} DCs, ${count} queries each…`;
+  status.style.color='var(--warn)';
+
+  dnsResults = [];
+  const container = document.getElementById('dns-dc-cards');
+  container.innerHTML = dcs.map(dc=>`
+    <div class="dns-dc-card" id="dns-card-${dc.DCName}">
+      <div class="dns-name">${esc(dc.DCName)}</div>
+      <div class="dns-ip">${esc(dc.IPAddress)} — ${esc(dc.Site||'')}</div>
+      <div style="font-family:var(--mono);font-size:.72rem;color:var(--warn)" class="bench-running">Testing…</div>
+    </div>
+  `).join('');
+
+  document.getElementById('dns-tested').textContent=0;
+  document.getElementById('dns-failed').textContent=0;
+
+  let tested=0, failed=0, totalMs=0, fastest=Infinity;
+
+  for(const dc of dcs){
+    const times=[];
+    // We use fetch timing as a DNS proxy — measure latency to DC endpoint
+    for(let i=0;i<count;i++){
+      try{
+        const t0=performance.now();
+        await fetch(`http://${dc.IPAddress}:389/`,{mode:'no-cors',cache:'no-store',signal:AbortSignal.timeout(2000)}).catch(()=>{});
+        const t1=performance.now();
+        times.push(Math.round(t1-t0));
+      } catch(e){ times.push(999); }
+      await new Promise(r=>setTimeout(r,50));
+    }
+    const avg=Math.round(times.reduce((a,b)=>a+b,0)/times.length);
+    const min=Math.min(...times);
+    const max=Math.max(...times);
+    totalMs+=avg; tested++;
+    if(avg<fastest) fastest=avg;
+    if(avg>=900) failed++;
+
+    const card=document.getElementById('dns-card-'+dc.DCName);
+    if(card){
+      const barPct=Math.min(100,avg/10);
+      const fillClass=avg<50?'':avg<150?'mid':'slow';
+      card.innerHTML=`
+        <div class="dns-name">${esc(dc.DCName)} ${avg<50?'🥇':avg<150?'🟡':'🔴'}</div>
+        <div class="dns-ip">${esc(dc.IPAddress)} — ${esc(dc.Site||'')}</div>
+        <div class="dns-bar-wrap"><span class="dns-bar-label">Avg</span><div class="dns-bar-bg"><div class="dns-bar-fill ${fillClass}" style="width:${barPct}%"></div></div><span class="dns-val" style="color:${avg<50?'var(--ok)':avg<150?'var(--warn)':'var(--err)'}">${avg}ms</span></div>
+        <div class="dns-bar-wrap"><span class="dns-bar-label">Min</span><div class="dns-bar-bg"><div class="dns-bar-fill" style="width:${Math.min(100,min/10)}%"></div></div><span class="dns-val" style="color:var(--ok)">${min}ms</span></div>
+        <div class="dns-bar-wrap"><span class="dns-bar-label">Max</span><div class="dns-bar-bg"><div class="dns-bar-fill slow" style="width:${Math.min(100,max/10)}%"></div></div><span class="dns-val" style="color:var(--err)">${max}ms</span></div>
+        <div style="font-family:var(--mono);font-size:.66rem;color:var(--dim);margin-top:5px">Samples: ${count}</div>
+      `;
+    }
+    dnsResults.push({name:dc.DCName,ip:dc.IPAddress,avg,min,max});
+    document.getElementById('dns-tested').textContent=tested;
+    document.getElementById('dns-failed').textContent=failed;
+    document.getElementById('dns-fastest').textContent=fastest===Infinity?'--':fastest+'ms';
+    document.getElementById('dns-avg').textContent=tested?Math.round(totalMs/tested)+'ms':'--';
+    status.textContent=`Tested ${tested}/${dcs.length} DCs…`;
+  }
+
+  buildDNSChart();
+  btn.disabled=false; btn.textContent='🌐 Run Benchmark';
+  status.textContent=`✅ Complete — ${tested} DCs tested`;
+  status.style.color='var(--ok)';
+  toast(`DNS benchmark complete — fastest: ${fastest}ms`,'ok',4000);
+}
+
+function buildDNSChart(){
+  const sorted=[...dnsResults].sort((a,b)=>a.avg-b.avg);
+  dnsChart=destroyChart(dnsChart);
+  dnsChart=new Chart(document.getElementById('dnsChart').getContext('2d'),{
+    type:'bar',
+    data:{labels:sorted.map(d=>d.name),datasets:[{label:'Avg (ms)',data:sorted.map(d=>d.avg),backgroundColor:sorted.map(d=>d.avg<50?'#00ff9d':d.avg<150?'#ffcc00':'#ff3860'),borderRadius:3},{label:'Min (ms)',data:sorted.map(d=>d.min),backgroundColor:'rgba(0,243,255,0.4)',borderRadius:3}]},
+    options:{responsive:true,scales:{y:{beginAtZero:true,ticks:{color:'#e0e0ff'},grid:{color:'rgba(255,255,255,0.04)'}},x:{ticks:{color:'#e0e0ff',maxRotation:45,font:{size:10}},grid:{display:false}}},plugins:{legend:{labels:{color:'#e0e0ff'}},title:{display:true,text:'DNS/Network Response by DC',color:'#00f3ff',font:{size:12}}}}
+  });
+}
+
+/* ════════════════════════════════════════════════
+   TAB 4 — LOG VIEWER
+════════════════════════════════════════════════ */
+const LOG_PATHS = {
+  ck: { path:'C:\\ck-agent\\log\\ck-agent.txt', defaultUrl:'ck-agent.txt', label:'CK Agent (Sample-DC)' },
+  gcds: { path:'C:\\tmp\\gcds-sample.log', defaultUrl:'gcds-sample.log', label:'GCDS Sync (192.0.2.10)' },
+  dc: { path:'C:\\DC_Dashboard\\dc_replication_monitor.txt', defaultUrl:'dc_replication_monitor.txt', label:'DC Monitor' }
+};
+let logAutoRefreshTimer = null;
+
+function switchLogSource(src, btn){
+  STATE.logs.current=src;
+  document.querySelectorAll('.log-src-btn').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  const info=LOG_PATHS[src];
+  document.getElementById('log-current-path').textContent=info.path;
+  refreshCurrentLog();
+}
+
+function setLogUrl(){
+  const url=document.getElementById('log-url-override').value.trim();
+  if(url) STATE.logs.urls[STATE.logs.current]=url;
+}
+
+function refreshCurrentLog(){
+  const src=STATE.logs.current;
+  const url=STATE.logs.urls[src]||LOG_PATHS[src].defaultUrl;
+  const viewer=document.getElementById('log-viewer');
+  viewer.innerHTML='<span style="color:var(--dim)">Loading…</span>';
+
+  fetch(url+'?'+Date.now(),{cache:'no-store'})
+  .then(r=>{ if(!r.ok) throw new Error(r.status); return r.text(); })
+  .then(text=>{
+    STATE.logs.raw=text;
+    renderLogViewer(text);
+    document.getElementById('log-last-update').textContent='Last: '+new Date().toLocaleTimeString();
+  })
+  .catch(()=>{
+    viewer.innerHTML=`<span style="color:var(--err)">⚠ Could not load ${url}\n\nMake sure the file is served as a static file from the dashboard web root.\n\nFor Windows: copy ${LOG_PATHS[src].path} to C:\\DC_Dashboard\\\nor add it to IIS/nginx as a static file.\n\nFor cross-server logs (192.0.2.10): create a PowerShell endpoint that reads and serves the file over HTTP.</span>`;
+    document.getElementById('log-line-count').textContent=0;
+    document.getElementById('log-err-count').textContent=0;
+    document.getElementById('log-warn-count').textContent=0;
+    document.getElementById('log-ok-count').textContent=0;
+  });
+
+  // setup auto-refresh
+  if(logAutoRefreshTimer) clearInterval(logAutoRefreshTimer);
+  logAutoRefreshTimer=setInterval(refreshCurrentLog, REFRESH_INTERVALS.logs*1000);
+}
+
+function renderLogViewer(text){
+  const viewer=document.getElementById('log-viewer');
+  const search=document.getElementById('log-search')?.value.toLowerCase()||'';
+  const level=document.getElementById('log-level-filter')?.value||'all';
+  const lines=text.split(/\r?\n/).filter(l=>l.trim());
+
+  let errCount=0,warnCount=0,okCount=0;
+  const filtered=lines.filter(line=>{
+    const lo=line.toLowerCase();
+    if(search && !lo.includes(search)) return false;
+    const isErr=/(error|failed|exception|critical|refused|unreachable)/i.test(line);
+    const isWarn=/(warn|warning|skipped|no ip)/i.test(line);
+    const isOk=/(ok\s*,|success|healthy|loaded|exported|started)/i.test(line);
+    if(isErr) errCount++;
+    else if(isWarn) warnCount++;
+    else if(isOk) okCount++;
+    if(level==='error') return isErr;
+    if(level==='warn') return isWarn;
+    if(level==='ok') return isOk;
+    return true;
+  });
+
+  document.getElementById('log-line-count').textContent=lines.length;
+  document.getElementById('log-err-count').textContent=errCount;
+  document.getElementById('log-warn-count').textContent=warnCount;
+  document.getElementById('log-ok-count').textContent=okCount;
+
+  updateBadge('logs',errCount);
+
+  // Render last 500 lines
+  const display=filtered.slice(-500).reverse();
+  viewer.innerHTML=display.map(line=>{
+    const tsM=line.match(/^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})/);
+    const ts=tsM?tsM[1]:'';
+    const rest=ts?line.slice(ts.length):line;
+    let cls='log-line-info';
+    if(/(error|failed|exception|critical|refused|unreachable)/i.test(line)) cls='log-line-err';
+    else if(/(warn|warning|skipped|no ip)/i.test(line)) cls='log-line-warn';
+    else if(/(ok\s*,|success|healthy|loaded|exported|started)/i.test(line)) cls='log-line-ok';
+    return `<span class="log-line-ts">${esc(ts)}</span><span class="${cls}">${esc(rest)}</span>\n`;
+  }).join('');
+
+  if(errCount>0) addEvent('logs','crit','❌',`${errCount} errors in ${LOG_PATHS[STATE.logs.current]?.label}`);
+}
+
+function filterLogLines(){ if(STATE.logs.raw) renderLogViewer(STATE.logs.raw); }
+
+function downloadLog(){
+  if(!STATE.logs.raw){ toast('No log loaded','err'); return; }
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([STATE.logs.raw],{type:'text/plain'}));
+  a.download=`${STATE.logs.current}_${new Date().toISOString().slice(0,10)}.log`;
+  a.click();
+}
+
+function analyzeLogsWithAI(){
+  const lines=STATE.logs.raw.split('\n').slice(-30).join('\n');
+  switchTab('ollama',document.querySelector('[onclick="switchTab(\'ollama\',this)"]'));
+  document.getElementById('chat-input').value=`Analyze these recent log entries from ${LOG_PATHS[STATE.logs.current]?.label} and summarize errors, root causes, and recommend fixes:\n\n${lines}`;
+  document.getElementById('chat-input').focus();
+}
+
+/* ════════════════════════════════════════════════
+   TAB 5 — GOOGLE SYNC
+════════════════════════════════════════════════ */
+function loadGSyncData(){ refreshGCDS(); refreshGPW(); }
+
+function refreshGCDS(){
+  const url=document.getElementById('gcds-url')?.value||'gcds-sample.log';
+  fetch((url||'gcds-sample.log')+'?'+Date.now(),{cache:'no-store'})
+  .then(r=>{ if(!r.ok) throw new Error(r.status); return r.text(); })
+  .then(text=>{
+    parseGCDSLog(text);
+    document.getElementById('gcds-log-mini').innerHTML=formatLogMini(text);
+    document.getElementById('gcds-dot').classList.remove('err');
+    addEvent('gsync','ok','☁️','GCDS log loaded successfully');
+  })
+  .catch(()=>{
+    document.getElementById('gcds-log-mini').innerHTML='<span style="color:var(--err)">Cannot load gcds-sample.log — ensure it\'s served from dashboard root or enter URL above</span>';
+    document.getElementById('gcds-status').textContent='Not reachable';
+    document.getElementById('gcds-status').style.color='var(--err)';
+    document.getElementById('gcds-dot').classList.add('err');
+    addEvent('gsync','warn','⚠️','GCDS log not reachable');
+  });
+}
+
+function parseGCDSLog(text){
+  const lines=text.split('\n').filter(l=>l.trim());
+  const errors=lines.filter(l=>/(error|failed)/i.test(l)).length;
+  const syncLines=lines.filter(l=>/sync(ed|ing)/i.test(l));
+  const userMatch=text.match(/(\d+)\s+users?\s+(?:sync|process)/i);
+  document.getElementById('gcds-last-sync').textContent=lines[lines.length-1]?.match(/\d{4}-\d{2}-\d{2}/)?.[0]||'Unknown';
+  document.getElementById('gcds-status').textContent=errors>0?'Errors Detected':'OK';
+  document.getElementById('gcds-status').style.color=errors>0?'var(--err)':'var(--ok)';
+  document.getElementById('gcds-users').textContent=userMatch?userMatch[1]:'--';
+  document.getElementById('gcds-errors').textContent=errors;
+  if(errors>0){ updateBadge('gsync',errors); addEvent('gsync','crit','❌',`GCDS: ${errors} errors detected`); }
+}
+
+function formatLogMini(text){
+  const lines=text.split('\n').filter(l=>l.trim()).slice(-15).reverse();
+  return lines.map(line=>{
+    let cls='color:var(--dim)';
+    if(/(error|failed)/i.test(line)) cls='color:var(--err)';
+    else if(/(warn)/i.test(line)) cls='color:var(--warn)';
+    else if(/(success|ok|sync)/i.test(line)) cls='color:var(--ok)';
+    return `<span style="${cls}">${esc(line)}</span>`;
+  }).join('\n');
+}
+
+function refreshGPW(){
+  const server=document.getElementById('gpw-server')?.value;
+  const logPath=document.getElementById('gpw-log-path')?.value;
+  if(!server&&!logPath){
+    document.getElementById('gpw-log-mini').innerHTML='<span style="color:var(--dim)">Enter server IP/hostname and log path above, then click 🔄</span>';
+    return;
+  }
+  const url=logPath||`http://${server}/gpw_sync.log`;
+  document.getElementById('gpw-server-sub').textContent=`Host: ${server||'?'} | ${logPath||'gpw_sync.log'}`;
+  fetch(url+'?'+Date.now(),{cache:'no-store'})
+  .then(r=>{ if(!r.ok) throw new Error(r.status); return r.text(); })
+  .then(text=>{
+    const lines=text.split('\n').filter(l=>l.trim());
+    const errors=lines.filter(l=>/(error|failed)/i.test(l)).length;
+    document.getElementById('gpw-last-sync').textContent=lines[lines.length-1]?.match(/\d{4}-\d{2}-\d{2}/)?.[0]||'Unknown';
+    document.getElementById('gpw-status').textContent=errors>0?'Errors':'OK';
+    document.getElementById('gpw-status').style.color=errors>0?'var(--err)':'var(--ok)';
+    document.getElementById('gpw-events').textContent=lines.length;
+    document.getElementById('gpw-errors').textContent=errors;
+    document.getElementById('gpw-log-mini').innerHTML=formatLogMini(text);
+    document.getElementById('gpw-dot').classList.toggle('err',errors>0);
+    addEvent('gsync','ok','🔐','GPW log loaded');
+  })
+  .catch(()=>{ document.getElementById('gpw-log-mini').innerHTML='<span style="color:var(--err)">Cannot load — check server and path</span>'; document.getElementById('gpw-dot').classList.add('err'); });
+}
+
+function saveGPWConfig(){
+  const server=document.getElementById('gpw-server')?.value;
+  const path=document.getElementById('gpw-log-path')?.value;
+  if(!server&&!path){ toast('Enter server or log URL first','warn'); return; }
+  localStorage.setItem('gpw_config',JSON.stringify({server,path}));
+  toast('GPW config saved','ok');
+  refreshGPW();
+}
+
+function openFullLog(src){ switchTab('logs',null); switchLogSource(src,null); }
+
+function analyzeGCDSLog(){
+  const mini=document.getElementById('gcds-log-mini').textContent;
+  switchTab('ollama',null);
+  document.getElementById('chat-input').value=`Analyze this Google Directory Sync log and identify any issues:\n\n${mini}`;
+}
+function analyzeGPWLog(){
+  const mini=document.getElementById('gpw-log-mini').textContent;
+  switchTab('ollama',null);
+  document.getElementById('chat-input').value=`Analyze this Google Password Sync log and identify any issues:\n\n${mini}`;
+}
+
+/* ════════════════════════════════════════════════
+   TAB 6 — UBUNTU SERVER
+════════════════════════════════════════════════ */
+const CPU_HISTORY = [];
+
+function loadUbuntuData(){
+  const api=document.getElementById('ubuntu-api')?.value;
+  const url=api||'ubuntu_status.json';
+  fetch(url+'?'+Date.now(),{cache:'no-store'})
+  .then(r=>{ if(!r.ok) throw new Error(r.status); return r.json(); })
+  .then(data=>{ renderUbuntuData(data); toast('Ubuntu data refreshed','ok',2000); })
+  .catch(()=>{ toast('ubuntu_status.json not found — run ubuntu_status.sh cron job','warn',4000); loadUbuntuDemo(); });
+}
+
+function saveUbuntuEndpoint(){
+  const val=document.getElementById('ubuntu-api')?.value;
+  if(val){ localStorage.setItem('ubuntu_api',val); toast('Ubuntu endpoint saved','ok'); }
+}
+
+function setGauge(id, pct, color){
+  const el=document.getElementById(id);
+  if(!el) return;
+  const r=32, circ=2*Math.PI*r;
+  const offset=circ*(1-Math.min(1,pct/100));
+  el.style.strokeDashoffset=offset;
+  if(color) el.style.stroke=color;
+}
+
+function renderUbuntuData(data){
+  const cpu=data.cpu||0, ram=data.ram||0, disk=data.disk||0;
+  setGauge('cpu-gauge',cpu, cpu>85?'var(--err)':cpu>65?'var(--warn)':'var(--primary)');
+  setGauge('ram-gauge',ram, ram>85?'var(--err)':ram>65?'var(--warn)':'var(--ok)');
+  setGauge('disk-gauge',disk, disk>90?'var(--err)':disk>75?'var(--warn)':'var(--warn)');
+  document.getElementById('cpu-val').textContent=cpu+'%';
+  document.getElementById('cpu-cores').textContent=(data.cores||'?')+' cores @ '+(data.cpu_mhz||'?')+'MHz';
+  document.getElementById('ram-val').textContent=ram+'%';
+  document.getElementById('ram-detail').textContent=`${data.ram_used||'?'} / ${data.ram_total||'?'} GB`;
+  document.getElementById('disk-val').textContent=disk+'%';
+  document.getElementById('disk-detail').textContent=`${data.disk_used||'?'} / ${data.disk_total||'?'} GB`;
+  document.getElementById('net-in').textContent=(data.net_in||'0.0');
+  document.getElementById('net-out').textContent=(data.net_out||'0.0');
+  document.getElementById('uptime-val').textContent=data.uptime||'--';
+  document.getElementById('uptime-since').textContent='Since '+( data.boot_time||'--');
+
+  CPU_HISTORY.push(cpu);
+  if(CPU_HISTORY.length>20) CPU_HISTORY.shift();
+  buildUbuntuCpuChart();
+
+  if(data.processes){
+    document.getElementById('process-list').innerHTML=data.processes.map(p=>`<div style="display:flex;justify-content:space-between"><span style="color:var(--primary)">${esc(p.name)}</span><span style="color:var(--dim)">${esc(p.cpu||'?')}% CPU / ${esc(p.mem||'?')}MB</span></div>`).join('');
+  }
+
+  if(cpu>85) addEvent('ubuntu','crit','⚠️',`High CPU: ${cpu}%`);
+  if(ram>90) addEvent('ubuntu','crit','⚠️',`High RAM: ${ram}%`);
+  if(disk>95) addEvent('ubuntu','crit','⚠️',`Disk near full: ${disk}%`);
+}
+
+function buildUbuntuCpuChart(){
+  ubuntuChart=destroyChart(ubuntuChart);
+  ubuntuChart=new Chart(document.getElementById('ubuntuCpuChart').getContext('2d'),{
+    type:'line',
+    data:{labels:CPU_HISTORY.map((_,i)=>''),datasets:[{data:CPU_HISTORY,borderColor:'#00f3ff',backgroundColor:'rgba(0,243,255,0.07)',borderWidth:2,tension:.4,pointRadius:3,pointBackgroundColor:'#00f3ff',fill:true}]},
+    options:{responsive:true,scales:{y:{beginAtZero:true,max:100,ticks:{color:'#e0e0ff',callback:v=>v+'%'},grid:{color:'rgba(255,255,255,0.04)'}},x:{ticks:{display:false},grid:{display:false}}},plugins:{legend:{display:false}}}
+  });
+}
+
+function loadUbuntuDemo(){
+  const cpu=Math.floor(Math.random()*60+20);
+  const ram=Math.floor(Math.random()*50+30);
+  const disk=Math.floor(Math.random()*30+40);
+  renderUbuntuData({cpu,ram,disk,cores:4,cpu_mhz:'2400',ram_used:(ram*0.64).toFixed(1),ram_total:'16',disk_used:(disk*0.5).toFixed(0),disk_total:'100',net_in:(Math.random()*5).toFixed(2),net_out:(Math.random()*2).toFixed(2),uptime:'14d 3h 22m',boot_time:'2026-05-07 05:00:00',processes:[{name:'ollama',cpu:'8.2',mem:'1240'},{name:'nginx',cpu:'0.5',mem:'48'},{name:'python3',cpu:'2.1',mem:'180'},{name:'postgres',cpu:'3.4',mem:'320'}]});
+}
+
+/* ════════════════════════════════════════════════
+   TAB 7 — OLLAMA AI
+════════════════════════════════════════════════ */
+function getOllamaConfig(){
+  return {
+    url: document.getElementById('ollama-url').value||'http://localhost:11434',
+    model: document.getElementById('ollama-model').value||'llama3.2',
+    tokens: parseInt(document.getElementById('ollama-tokens').value)||1024
+  };
+}
+
+async function testOllama(){
+  const cfg=getOllamaConfig();
+  document.getElementById('ollama-status').textContent='Testing…';
+  document.getElementById('ollama-status').style.color='var(--warn)';
+  try{
+    const r=await fetch(cfg.url+'/api/tags',{signal:AbortSignal.timeout(5000)});
+    if(!r.ok) throw new Error(r.status);
+    const data=await r.json();
+    const models=(data.models||[]).map(m=>m.name).join(', ')||'none';
+    document.getElementById('ollama-status').textContent='✅ Connected — Models: '+models;
+    document.getElementById('ollama-status').style.color='var(--ok)';
+    toast('Ollama connected','ok',2500);
+    addSystemMsg('Connected to Ollama at '+cfg.url+'. Available models: '+models);
+  } catch(e){
+    document.getElementById('ollama-status').textContent='❌ Cannot connect: '+e.message;
+    document.getElementById('ollama-status').style.color='var(--err)';
+    toast('Cannot connect to Ollama','err',4000);
+  }
+}
+
+async function pullModels(){
+  const cfg=getOllamaConfig();
+  try{
+    const r=await fetch(cfg.url+'/api/tags');
+    const data=await r.json();
+    const models=(data.models||[]).map(m=>m.name);
+    addSystemMsg('Available models: '+models.join(', '));
+    // Update select
+    const sel=document.getElementById('ollama-model');
+    if(models.length){ sel.innerHTML=models.map(m=>`<option value="${esc(m)}">${esc(m)}</option>`).join(''); }
+  } catch(e){ toast('Could not list models: '+e.message,'err'); }
+}
+
+function addSystemMsg(text){
+  const msgs=document.getElementById('chat-messages');
+  const d=document.createElement('div');
+  d.className='msg msg-system'; d.textContent=text;
+  msgs.appendChild(d);
+  msgs.scrollTop=msgs.scrollHeight;
+}
+
+function addUserMsg(text){
+  const msgs=document.getElementById('chat-messages');
+  const d=document.createElement('div');
+  d.className='msg msg-user'; d.textContent=text;
+  msgs.appendChild(d);
+  msgs.scrollTop=msgs.scrollHeight;
+}
+
+function addAIMsg(text){
+  const msgs=document.getElementById('chat-messages');
+  const d=document.createElement('div');
+  d.className='msg msg-ai'; d.textContent=text;
+  msgs.appendChild(d);
+  msgs.scrollTop=msgs.scrollHeight;
+  return d;
+}
+
+async function sendChat(){
+  const inp=document.getElementById('chat-input');
+  const text=inp.value.trim();
+  if(!text) return;
+  inp.value='';
+  addUserMsg(text);
+  await callOllama(text);
+}
+
+function chatKeyDown(e){
+  if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendChat(); }
+}
+
+async function callOllama(prompt, systemPrompt=''){
+  const cfg=getOllamaConfig();
+  const thinkEl=addAIMsg('●●●');
+  thinkEl.querySelectorAll&&thinkEl.textContent;
+  thinkEl.innerHTML='<span class="thinking-dot">●</span><span class="thinking-dot" style="animation-delay:.2s">●</span><span class="thinking-dot" style="animation-delay:.4s">●</span>';
+
+  const fullPrompt=systemPrompt?`${systemPrompt}\n\n${prompt}`:prompt;
+  try{
+    const r=await fetch(cfg.url+'/api/generate',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:cfg.model,prompt:fullPrompt,stream:false,options:{num_predict:cfg.tokens}})
+    });
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const data=await r.json();
+    thinkEl.className='msg msg-ai';
+    thinkEl.textContent=data.response||'No response';
+    document.getElementById('chat-messages').scrollTop=99999;
+    return data.response;
+  } catch(e){
+    thinkEl.className='msg msg-ai';
+    thinkEl.textContent='❌ Error: '+e.message+'\n\nMake sure Ollama is running: ollama serve\nAnd accessible at: '+cfg.url;
+    return null;
+  }
+}
+
+function buildDCContext(){
+  const errs=STATE.dc.data.filter(d=>d.Status==='ERROR').map(d=>`${d.DCName} (${d.IPAddress||'no IP'}): ${d.LastReplication}`).join('\n');
+  const ok=STATE.dc.data.filter(d=>d.Status==='OK').length;
+  const total=STATE.dc.data.length;
+  return `Current DC Status: ${ok}/${total} healthy.\nErrors:\n${errs||'None'}`;
+}
+
+async function aiAnalyzeDC(){
+  const ctx=buildDCContext();
+  await callOllama(`Analyze these AD domain controller replication errors and provide a prioritized troubleshooting plan with specific PowerShell/repadmin commands:\n\n${ctx}`,
+    'You are a Windows Active Directory expert. Be concise and actionable. Format your response with numbered steps.');
+}
+async function aiAnalyzeNTP(){
+  const crit=ntpData.filter(c=>c.Status!=='ok').map(c=>`${c.Address}: drift=${c.Offset}ms`).slice(0,20).join('\n');
+  await callOllama(`NTP drift issues detected. Clients with problems:\n${crit||'All OK'}\n\nWhat could cause excessive NTP drift in an enterprise environment and how do I fix it?`,
+    'You are a network engineering expert specializing in time synchronization.');
+}
+async function aiAnalyzeLogs(){
+  const recent=STATE.logs.raw.split('\n').filter(l=>/(error|fail|warn|critical)/i.test(l)).slice(-20).join('\n');
+  await callOllama(`Analyze these log errors from ${LOG_PATHS[STATE.logs.current]?.label}:\n\n${recent||'No errors found in recent logs'}\n\nProvide root cause analysis and remediation steps.`);
+}
+async function aiHealthReport(){
+  const ctx=buildDCContext();
+  const ntpIssues=ntpData.filter(c=>c.Status!=='ok').length;
+  const logErrs=(STATE.logs.raw.match(/(error|failed)/gi)||[]).length;
+  await callOllama(`Generate a NOC health report:\n\nDC Status: ${ctx}\nNTP Issues: ${ntpIssues} clients with drift problems\nLog Errors: ${logErrs} errors in recent logs\n\nWrite a professional executive summary with risk level and recommended immediate actions.`,
+    'You are a senior NOC engineer. Write a clear, professional health report.');
+}
+async function aiSuggestFixes(){
+  const errs=STATE.dc.data.filter(d=>d.Status==='ERROR');
+  if(!errs.length){ await callOllama('All domain controllers are healthy. What proactive maintenance should I perform?'); return; }
+  await callOllama(`I have ${errs.length} domain controller(s) with errors:\n${errs.map(d=>`${d.DCName}: ${d.LastReplication}`).join('\n')}\n\nGive me specific fix commands for each error type.`);
+}
+async function aiDraftAlert(){
+  const ctx=buildDCContext();
+  await callOllama(`Draft a professional IT alert email for the following infrastructure issues:\n\n${ctx}\n\nInclude: urgency level, affected systems, business impact, and next steps.`,
+    'Write a clear, professional IT operations alert email.');
+}
+async function aiAskAboutDC(dcName){
+  switchTab('ollama',null);
+  await callOllama(`What are the common causes and fixes for domain controller replication issues on ${dcName}? Provide specific diagnostic steps and PowerShell commands.`);
+}
+function clearChat(){
+  document.getElementById('chat-messages').innerHTML='<div class="msg msg-system">Chat cleared. Ask me about your infrastructure.</div>';
+}
+async function sendAIAlertNow(){
+  const ctx=buildDCContext();
+  const report=await callOllama(`Write a 2-sentence NOC alert summary:\n${ctx}`);
+  if(report){ sendAlert('NOC AI Alert',report); toast('AI alert sent','ok',3000); addEvent('dc','warn','📨','AI alert sent: '+report.slice(0,80)); }
+}
+function scheduleAIAlerts(){
+  document.getElementById('ai-alert-status').textContent='Daily digest scheduled (simulated)';
+  toast('Daily AI digest scheduled (configure via cron for real scheduling)','warn',4000);
+}
+
+/* ════════════════════════════════════════════════
+   TAB 8 — ADD MONITOR
+════════════════════════════════════════════════ */
+function openTemplate(type){
+  const form=document.getElementById('template-form');
+  form.classList.add('visible');
+  const titles={
+    'json-api':'Configure JSON API Monitor',
+    'log-file':'Configure Log File Watcher',
+    'ping':'Configure Ping / Port Check',
+    'windows-service':'Configure Windows Service Monitor',
+    'linux-service':'Configure Linux Service Monitor',
+    'custom':'Configure Custom Monitor'
+  };
+  document.getElementById('template-title').textContent=titles[type]||'Configure Monitor';
+  document.getElementById('new-mon-type').value=type.includes('log')?'log':type.includes('ping')?'ping':'json';
+  form.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function saveNewMonitor(){
+  const name=document.getElementById('new-mon-name').value.trim();
+  const icon=document.getElementById('new-mon-icon').value||'📡';
+  const url=document.getElementById('new-mon-url').value.trim();
+  const interval=parseInt(document.getElementById('new-mon-interval').value)||60;
+  const alert=document.getElementById('new-mon-alert-pattern').value;
+  const type=document.getElementById('new-mon-type').value;
+  const desc=document.getElementById('new-mon-desc').value;
+  if(!name||!url){ toast('Name and URL are required','err'); return; }
+
+  const monitors=JSON.parse(localStorage.getItem('noc_monitors')||'[]');
+  monitors.push({id:Date.now(),name,icon,url,interval,alert,type,desc,added:new Date().toISOString()});
+  localStorage.setItem('noc_monitors',JSON.stringify(monitors));
+  toast(`Monitor "${name}" saved!`,'ok',3000);
+  loadSavedMonitors();
+  addNewTabButton(icon,name);
+  document.getElementById('template-form').classList.remove('visible');
+}
+
+function addNewTabButton(icon,name){
+  const nav=document.querySelector('.tab-nav');
+  const btn=document.createElement('button');
+  const id='custom_'+name.toLowerCase().replace(/\s+/g,'_');
+  btn.className='tab-btn';
+  btn.textContent=`${icon} ${name}`;
+  btn.onclick=function(){ switchTab('addtab',null); toast(`Custom tab for ${name} — configure in Add Monitor tab`,'warn',3000); };
+  // Insert before the last + button
+  const addBtn=nav.querySelector('[onclick*="addtab"]');
+  nav.insertBefore(btn, addBtn);
+}
+
+function loadSavedMonitors(){
+  const monitors=JSON.parse(localStorage.getItem('noc_monitors')||'[]');
+  const list=document.getElementById('saved-monitors-list');
+  list.textContent='';
+  if(!monitors.length){
+    const p=document.createElement('p');
+    p.style.color='var(--dim)';
+    p.style.fontFamily='var(--mono)';
+    p.style.fontSize='.8rem';
+    p.textContent='No custom monitors added yet.';
+    list.appendChild(p);
+    return;
+  }
+  monitors.forEach((m,i)=>{
+    const item=document.createElement('div');
+    item.className='saved-monitor-item';
+
+    const info=document.createElement('span');
+    info.appendChild(document.createTextNode((m.icon||'')+' '));
+
+    const strong=document.createElement('strong');
+    strong.style.color='var(--primary)';
+    strong.textContent=m.name||'';
+    info.appendChild(strong);
+
+    info.appendChild(document.createTextNode(' — '));
+
+    const sub=document.createElement('span');
+    sub.style.color='var(--dim)';
+    sub.textContent=(m.desc||m.url||'');
+    info.appendChild(sub);
+
+    const actions=document.createElement('div');
+    actions.style.display='flex';
+    actions.style.gap='6px';
+
+    const testBtn=document.createElement('button');
+    testBtn.className='btn-sm';
+    testBtn.textContent='🔍 Test';
+    testBtn.addEventListener('click',()=>testMonitor(i));
+
+    const delBtn=document.createElement('button');
+    delBtn.className='btn-sm btn-s';
+    delBtn.textContent='✕';
+    delBtn.addEventListener('click',()=>deleteMonitor(i));
+
+    actions.appendChild(testBtn);
+    actions.appendChild(delBtn);
+
+    item.appendChild(info);
+    item.appendChild(actions);
+    list.appendChild(item);
+  });
+}
+
+function testMonitor(i){
+  const monitors=JSON.parse(localStorage.getItem('noc_monitors')||'[]');
+  const m=monitors[i];
+  if(!m) return;
+  fetch(m.url+'?'+Date.now(),{cache:'no-store',signal:AbortSignal.timeout(5000)})
+  .then(r=>toast(`✅ ${m.name} responded: HTTP ${r.status}`,'ok',3000))
+  .catch(e=>toast(`❌ ${m.name} failed: ${e.message}`,'err',4000));
+}
+
+function deleteMonitor(i){
+  const monitors=JSON.parse(localStorage.getItem('noc_monitors')||'[]');
+  const name=monitors[i]?.name;
+  monitors.splice(i,1);
+  localStorage.setItem('noc_monitors',JSON.stringify(monitors));
+  loadSavedMonitors();
+  toast(`Monitor "${name}" removed`,'warn',2500);
+}
+
+/* ════════════════════════════════════════════════
+   INIT & AUTO-REFRESH
+════════════════════════════════════════════════ */
+function initRefreshTimers(){
+  // DC: every 60s
+  setInterval(loadDCData, REFRESH_INTERVALS.dc*1000);
+  // NTP clock: every second
+  setInterval(updateNTPClock, 1000);
+  // Ubuntu: every 60s (only if tab was opened)
+  setInterval(()=>{ if(STATE.ubuntu.loaded) loadUbuntuData(); }, REFRESH_INTERVALS.ubuntu*1000);
+  // GCDS: every 2min (only if opened)
+  setInterval(()=>{ if(STATE.gsync_loaded) loadGSyncData(); }, REFRESH_INTERVALS.gsync*1000);
+  // PBX: every 60s (only if tab was opened)
+  setInterval(()=>{ if(STATE.pbx.loaded) loadPBXData(); }, REFRESH_INTERVALS.pbx*1000);
+}
+
+function loadSavedConfig(){
+  const cfg=localStorage.getItem('noc_alerts');
+  if(cfg){
+    try{
+      const c=JSON.parse(cfg);
+      if(c.email) document.getElementById('email-addr').value=c.email;
+      if(c.tgToken) document.getElementById('tg-token').value=c.tgToken;
+      if(c.tgChat) document.getElementById('tg-chat').value=c.tgChat;
+      if(c.teamsUrl) document.getElementById('teams-url').value=c.teamsUrl;
+    } catch(e){}
+  }
+  const ubApi=localStorage.getItem('ubuntu_api');
+  if(ubApi) document.getElementById('ubuntu-api').value=ubApi;
+  const gpw=localStorage.getItem('gpw_config');
+  if(gpw){ try{ const c=JSON.parse(gpw); document.getElementById('gpw-server').value=c.server||''; document.getElementById('gpw-log-path').value=c.path||''; } catch(e){} }
+  loadSavedMonitors();
+  // Re-add custom tab buttons
+  const monitors=JSON.parse(localStorage.getItem('noc_monitors')||'[]');
+  monitors.forEach(m=>addNewTabButton(m.icon,m.name));
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  loadSavedConfig();
+  loadDCData();
+  initRefreshTimers();
+  // Start NTP clock
+  updateNTPClock();
+  // Initial events
+  addGlobalEvent('info','🚀','NOC Operations Platform v11.0 initialized');
+});
+</script>
+</body>
+</html>
