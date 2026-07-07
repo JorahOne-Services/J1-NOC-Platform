@@ -1,4 +1,4 @@
-# J1-NOC-Platform — Fixes and Enhancements
+# NexusCore — Fixes and Enhancements
 
 ## Changes Made
 

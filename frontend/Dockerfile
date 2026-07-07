@@ -1,5 +1,5 @@
 # =============================================================================
-# J1-NOC-Platform Frontend — React + Vite → nginx
+# NexusCore Frontend — React + Vite → nginx
 # Tag convention: jorahone/jnop-frontend:latest
 # =============================================================================
 FROM node:20-alpine AS builder
@@ -36,7 +36,7 @@ EXPOSE 80
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 --start-period=10s \
     CMD wget --spider -q http://127.0.0.1/ || exit 1
 
-LABEL org.opencontainers.image.title="J1-NOC-Platform Frontend" \
+LABEL org.opencontainers.image.title="NexusCore Frontend" \
       org.opencontainers.image.description="React + Vite frontend for J1 NOC Platform" \
       org.opencontainers.image.vendor="JorahOne" \
       org.opencontainers.image.version="1.0.0"
