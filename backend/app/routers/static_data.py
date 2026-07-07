@@ -1,3 +1,4 @@
+import contextlib
 import json
 import pathlib
 
@@ -7,7 +8,9 @@ from fastapi.responses import JSONResponse, PlainTextResponse
 router = APIRouter()
 BASE = pathlib.Path("/srv/jnop/data")
 LOG_DIR = pathlib.Path("/srv/jnop/logs")
-LOG_DIR.mkdir(parents=True, exist_ok=True)
+# Defensive: only create if writable (non-root user may not own the parent)
+with contextlib.suppress(OSError):
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 
 @router.get("/dc_status")

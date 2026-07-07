@@ -20,6 +20,10 @@ COPY . .
 # Ensure non-root ownership of the app tree
 RUN chown -R appuser:appuser /app
 
+# Runtime data/log directories the app writes to (owned by the non-root user)
+RUN mkdir -p /srv/jnop/data /srv/jnop/logs \
+    && chown -R appuser:appuser /srv/jnop
+
 USER appuser
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \

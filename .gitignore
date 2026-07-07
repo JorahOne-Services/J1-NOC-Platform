@@ -10,5 +10,10 @@ node_modules/
 *.crt
 test.db
 .pytest_cache
-__pycache__
+node_modules/
+frontend/dist/
 backend/.venv/
+
+# Keep lockfiles for reproducible installs
+!frontend/pnpm-lock.yaml
+!uv.lock

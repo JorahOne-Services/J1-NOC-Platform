@@ -19,6 +19,7 @@ from .routers import (
     notifications,
     setup,
     static_data,
+    system,
     tools,
     wazuh,
 )
@@ -92,6 +93,7 @@ def create_app() -> FastAPI:
 
     app.include_router(static_data.router, prefix="/api")
     app.include_router(metrics.router)
+    app.include_router(system.router, prefix="/api")
 
     app.include_router(health.router)
     app.include_router(health.router, prefix="/api")
