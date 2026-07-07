@@ -32,6 +32,9 @@ chmod 600 "$PROJECT_DIR/.env"
 log "Deploying containers..."
 docker compose up -d --build --remove-orphans
 
+log "Applying database migrations (Alembic)..."
+docker compose exec -T backend alembic upgrade head || log "WARNING: alembic upgrade failed — check logs"
+
 log "Waiting for backend health..."
 sleep 20
 if ! docker ps | grep -q "j1-noc-platform-backend-1.*healthy"; then

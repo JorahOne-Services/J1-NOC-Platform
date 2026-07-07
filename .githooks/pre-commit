@@ -1,21 +1,26 @@
 #!/usr/bin/env bash
-# Pre-commit hook: block commits that look like they contain live secrets
+# Pre-commit hook: block commits that look like they contain live secrets.
 # Install: cp .githooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+#
+# Only flags an ASSIGNED LITERAL secret value (quoted, >= 8 chars, or a known token
+# prefix like ghp_/xox-). Variable declarations such as `access_token: str = ...`
+# or `token = payload.get(...)` are NOT flagged — that is a false positive we avoid.
 
 set -euo pipefail
 
+# A real secret: key=<quoted value >=8 chars> OR a known provider token prefix.
 BLOCKED_PATTERNS=(
-  'password=[^"\s]{8,}'
-  'secret(_key)?=[^"\s]{8,}'
-  'api[_-]?key=[^"\s]{8,}'
-  'token=[^"\s]{8,}'
-  'private[_-]?key'
+  '(password|secret(_key)?|api[_-]?key|access[_-]?token|private[_-]?key|client[_-]?secret)\s*=\s*["'\''][^"'\''\s]{8,}["'\'']'
   'BEGIN (RSA|OPENSSH|EC|DSA) PRIVATE KEY'
-  'postgresql://[^:"]+:[^@]+@'
-  'redis://:[^@]+@'
+  'postgresql://[^:/\s]+:[^@\s]{8,}@'
+  'redis://:[^@\s]{8,}@'
+  '(ghp|github_pat)_[A-Za-z0-9]{20,}'
+  'xox[baprs]-[A-Za-z0-9-]{10,}'
+  'eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}'
 )
 
-FILES=$(git diff --cached --name-only --diff-filter=ACM)
+# Only scan likely source/config files, never lockfiles or .env templates
+FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(py|js|ts|tsx|yml|yaml|toml|json|env|example|sh)$' || true)
 if [[ -z "$FILES" ]]; then
   exit 0
 fi

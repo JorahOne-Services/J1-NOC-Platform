@@ -44,7 +44,7 @@ packages = ["app"]
 line-length = 100
 target-version = "py312"
 src = ["app", "backend/app"]
-exclude = ["node_modules", "dist", ".venv", "venv", "__pycache__"]
+exclude = ["node_modules", "dist", ".venv", "venv", "__pycache__", "alembic/versions"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "C4", "SIM", "W", "DJ", "ASYNC"]

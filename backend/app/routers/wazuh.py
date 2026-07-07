@@ -3,12 +3,11 @@ import urllib.parse
 from typing import Any
 
 import requests
+from app.config import get_settings
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
-
-from app.config import get_settings
 
 router = APIRouter()
 

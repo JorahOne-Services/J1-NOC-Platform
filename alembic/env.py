@@ -1,27 +1,54 @@
+import os
 from logging.config import fileConfig
+from urllib.parse import urlparse
+
+from sqlalchemy import create_engine, engine_from_config, pool
 
 from alembic import context
-from sqlalchemy import engine_from_config, pool
 
 config = context.config
+
+# Prefer DATABASE_URL from the environment. Build the engine directly from it to
+# avoid ConfigParser %-interpolation issues when the secret contains '%'.
+db_url = os.getenv("DATABASE_URL") or config.get_main_option("sqlalchemy.url")
+
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-from backend.app.database import Base  # noqa: E402
-from backend.app.models import *  # noqa: E402,F403,F401
+# Support both layouts: `app` (container WORKDIR=/app) and `backend.app` (repo root).
+try:
+    from app.database import Base  # type: ignore
+    from app.models import *  # type: ignore  # noqa: F403,F401
+except ModuleNotFoundError:
+    from backend.app.database import Base  # noqa: E402
+    from backend.app.models import *  # noqa: E402,F403,F401
 
 target_metadata = Base.metadata
 
 
+def _connectable():
+    if db_url and urlparse(db_url).scheme:
+        return create_engine(db_url, poolclass=pool.NullPool)
+    return engine_from_config(
+        config.get_section(config.config_ini_section, {}),
+        prefix="sqlalchemy.",
+        poolclass=pool.NullPool,
+    )
+
+
 def run_migrations_offline() -> None:
-    url = config.get_main_option("sqlalchemy.url")
-    context.configure(url=url, target_metadata=target_metadata, literal_binds=True, dialect_opts={"paramstyle": "named"})
+    context.configure(
+        url=db_url,
+        target_metadata=target_metadata,
+        literal_binds=True,
+        dialect_opts={"paramstyle": "named"},
+    )
     with context.begin_transaction():
         context.run_migrations()
 
 
 def run_migrations_online() -> None:
-    connectable = engine_from_config(config.get_section(config.config_ini_section, {}), prefix="sqlalchemy.", poolclass=pool.NullPool)
+    connectable = _connectable()
     with connectable.connect() as connection:
         context.configure(connection=connection, target_metadata=target_metadata)
         with context.begin_transaction():

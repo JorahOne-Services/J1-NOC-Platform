@@ -1,5 +1,6 @@
 import json
 import logging
+import time
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -8,12 +9,13 @@ from fastapi.responses import JSONResponse
 
 from . import routers as _routers
 from .config import get_settings
-from .database import Base, engine
+from .logging_config import configure_logging
 from .routers import (
     ai,
     auth,
     dashboard,
     health,
+    metrics,
     notifications,
     setup,
     static_data,
@@ -30,13 +32,27 @@ except Exception:  # pragma: no cover - degrade gracefully
     _settings = None
 
 settings = get_settings()
+configure_logging()
 logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    Base.metadata.create_all(bind=engine)
+    # Schema is managed exclusively via Alembic migrations (no create_all in app).
+    # Run `alembic upgrade head` out-of-band or via the deploy script.
     yield
+
+
+async def prometheus_middleware(request: Request, call_next):
+    start = time.perf_counter()
+    response = await call_next(request)
+    duration = time.perf_counter() - start
+    endpoint = request.url.path
+    from .routers.metrics import HTTP_REQUEST_COUNT, HTTP_REQUEST_LATENCY
+
+    HTTP_REQUEST_COUNT.labels(request.method, endpoint, response.status_code).inc()
+    HTTP_REQUEST_LATENCY.labels(request.method, endpoint).observe(duration)
+    return response
 
 
 def create_app() -> FastAPI:
@@ -56,6 +72,8 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    app.middleware("http")(prometheus_middleware)
+
     @app.get("/healthz", include_in_schema=False)
     def healthz_root() -> dict:
         return {"status": "ok"}
@@ -73,6 +91,7 @@ def create_app() -> FastAPI:
         return JSONResponse({"Success": True, "Request": body})
 
     app.include_router(static_data.router, prefix="/api")
+    app.include_router(metrics.router)
 
     app.include_router(health.router)
     app.include_router(health.router, prefix="/api")
