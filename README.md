@@ -23,6 +23,10 @@
 
 ---
 
+## 📸 Screenshot
+
+This is a CLI/backend-only tool. No screenshots available.
+
 ## ✨ Features
 
 - **Real-Time Monitoring** — DC replication, NTP sync, DNS performance, OS images, centralized logs, helpdesk, SIEM
