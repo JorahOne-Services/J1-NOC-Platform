@@ -2,9 +2,7 @@ services:
   nginx:
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/conf.d:/etc/nginx/conf.d:ro
       - ./nginx/certs:/etc/nginx/certs:ro
-      - frontend_dist:/usr/share/nginx/html:ro
     ports:
       - "80:80"
       - "5173:80"

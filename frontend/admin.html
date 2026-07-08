@@ -207,7 +207,8 @@ function renderDashboard(app, sess) {
 async function loadTab(tab) {
   const c = document.getElementById('tabContent');
   c.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
-  try { await ({ overview: loadOverview, credentials: loadCredentials, integrations: loadIntegrations, users: loadUsers, settings: loadSettings }[tab]?.(c)) || (c.innerHTML = '<div class="empty-state"><div class="icon">📄</div><p>Page not found</p></div>'); } 
+  const fn = { overview: loadOverview, credentials: loadCredentials, integrations: loadIntegrations, users: loadUsers, settings: loadSettings }[tab];
+  try { if (fn) { await fn(c); } else { c.innerHTML = '<div class="empty-state"><div class="icon">📄</div><p>Page not found</p></div>'; } } 
   catch(e) { c.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>Error loading: ${e.message}</p></div>`; }
 }
 
