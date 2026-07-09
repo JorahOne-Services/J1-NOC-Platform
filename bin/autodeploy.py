@@ -4,7 +4,7 @@ import subprocess
 import sys
 import time
 
-REPO_DIR = "/home/<user>/jnop"
+REPO_DIR = "/opt/jnop"
 NGINX_CONF = "/etc/nginx/sites-enabled/jnop-dashboard.conf"
 
 def run(*cmd, **kwargs):

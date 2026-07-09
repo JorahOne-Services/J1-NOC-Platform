@@ -47,7 +47,7 @@ deploy:
   tool: docker-compose
   systemd_unit: j1-noc-platform.service
   live_env: /etc/j1-noc-platform/.env.live
-  canonical_dir: /home/<user>/NexusCore
+  canonical_dir: /opt/nexuscore
 
 tooling:
   python: "3.12"

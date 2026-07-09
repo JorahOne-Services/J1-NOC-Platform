@@ -4,7 +4,7 @@
 # The repository .env is restored to a safe template after deployment.
 set -euo pipefail
 
-PROJECT_DIR="/home/<user>/NexusCore"
+PROJECT_DIR="/opt/nexuscore"
 LIVE_ENV="/etc/j1-noc-platform/.env.live"
 EXAMPLE_ENV="$PROJECT_DIR/.env.example"
 
@@ -23,7 +23,7 @@ fi
 cd "$PROJECT_DIR"
 
 log "Pulling latest code..."
-sudo -u <user> git pull origin main
+sudo -u nexus git pull origin main
 
 log "Loading live environment..."
 cp "$LIVE_ENV" "$PROJECT_DIR/.env"
