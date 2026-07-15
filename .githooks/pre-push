@@ -1,0 +1,27 @@
+#!/bin/bash
+# Pre-push hook: block any .env file (except .env.example) from being pushed.
+# Secrets live only in /etc/j1-noc-platform/.env.live — never in the repo.
+
+STAGED=$(git diff --cached --name-only 2>/dev/null)
+DIFF=$(git diff --name-only HEAD 2>/dev/null)
+PUSHING=$(git diff --name-only "$REMOTE".."$LOCAL" 2>/dev/null || echo "")
+
+ALL="$STAGED $DIFF $PUSHING"
+
+# Block .env files (allow .env.example)
+echo "$ALL" | tr ' ' '\n' | grep -v '^$' | while read -r f; do
+  if echo "$f" | grep -qE '^\.env(\.[a-zA-Z0-9_-]+)?$' && [ "$f" != ".env.example" ]; then
+    echo "🚨 Blocked: $f is in the push — secrets must stay in /etc/j1-noc-platform/.env.live"
+    exit 1
+  fi
+done
+
+# Block accidental secret patterns in pushed diffs
+for f in $ALL; do
+  if [ -f "$f" ] && git diff --cached -- "$f" 2>/dev/null | grep -qiE '(password|secret|token|api_key|fernet_key)\s*=\s*["\x27]?[A-Za-z0-9_/-]{12,}'; then
+    echo "🚨 Blocked: possible hardcoded secret in $f"
+    exit 1
+  fi
+done
+
+exit 0

@@ -1,4 +1,5 @@
 """Expose collector run status to the dashboard (no secrets)."""
+
 from __future__ import annotations
 
 import json

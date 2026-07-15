@@ -35,7 +35,8 @@ def _ollama_connected() -> bool:
     settings = get_settings()
     try:
         with httpx.Client(timeout=3.0) as client:
-            r = client.get(f"{settings.ollama_host}/api/tags")
+            # VIDEaiCore uses OpenAI-compatible /v1/models endpoint
+            r = client.get(f"{settings.ollama_host}/v1/models")
             return r.status_code == 200
     except Exception:
         return False
@@ -48,7 +49,7 @@ def _overview_kpis() -> dict[str, Any]:
     dcs = dc_status.get("DCs", dc_status.get("dc_status", []))
     total_devices = len(dcs) if isinstance(dcs, list) else 0
     online_devices = len(
-        [d for d in dcs if isinstance(d, dict) and d.get("status", "").lower() == "ok"]
+        [d for d in dcs if isinstance(d, dict) and d.get("Status", "").lower() == "ok"]
     )
 
     clients = ntp_status.get("Clients", ntp_status.get("clients", []))
@@ -56,8 +57,9 @@ def _overview_kpis() -> dict[str, Any]:
     critical_alerts = 0
     for c in clients:
         if isinstance(c, dict):
-            status = c.get("status", "").lower()
-            if status == "critical":
+            status = c.get("Status", "").lower()
+            # Accept both "crit" and "critical" from collectors
+            if status in ("critical", "crit"):
                 critical_alerts += 1
             elif status in ("warn", "warning"):
                 active_alerts += 1

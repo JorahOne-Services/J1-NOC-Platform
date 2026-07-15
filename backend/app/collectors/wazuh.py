@@ -4,11 +4,10 @@ Queries WAZUH_API_URL with WAZUH_USERNAME / WAZUH_PASSWORD from the vault and
 reports active alert counts. Writes /srv/jnop/data/siem_status.json (no
 credentials). Uses httpx (already a backend dependency).
 """
+
 from __future__ import annotations
 
-import json
-
-from .base import get_cred, mask, write_json, record_status, logger
+from .base import get_cred, logger, mask, record_status, write_json
 
 
 def collect() -> None:
@@ -45,9 +44,9 @@ def collect() -> None:
                 "url": base,
                 "active_alerts": alert_count,
                 "agents": agent_total,
-                "collected_at": __import__("datetime").datetime.now(
-                    __import__("datetime").timezone.utc
-                ).isoformat(),
+                "collected_at": __import__("datetime")
+                .datetime.now(__import__("datetime").timezone.utc)
+                .isoformat(),
             },
         )
         record_status("wazuh", True, f"{alert_count} alerts, {agent_total} agents")

@@ -27,7 +27,7 @@ def _wazuh_config():
     }
 
 
-OLLAMA_API_URL = os.getenv("OLLAMA_HOST", "http://localhost:11434").rstrip("/")
+OLLAMA_API_URL = os.getenv("OLLAMA_HOST", "http://100.92.150.99:11448").rstrip("/")
 
 
 def _session(verify: bool = False) -> requests.Session:
@@ -192,18 +192,18 @@ def get_wazuh_overview():
 
 @router.get("/ollama/status")
 def get_ollama_status():
-    """Get Ollama service status"""
+    """Get Ollama service status (VIDEaiCore via OpenAI-compatible API)"""
     try:
         cfg = _wazuh_config()
         with _session(verify=cfg["verify_ssl"]) as session:
             response = session.get(
-                urllib.parse.urljoin(OLLAMA_API_URL, "/api/tags"),
+                urllib.parse.urljoin(OLLAMA_API_URL, "/v1/models"),
                 timeout=10,
             )
         if response.status_code == 200:
-            return JSONResponse(
-                {"status": "Connected", "models": response.json().get("models", [])}
-            )
+            data = response.json()
+            models = [d.get("id") for d in data.get("data", [])]
+            return JSONResponse({"status": "Connected", "models": models})
         return JSONResponse(
             {"status": "Disconnected", "error": f"API returned {response.status_code}"}
         )
@@ -213,22 +213,22 @@ def get_ollama_status():
 
 @router.post("/ollama/chat")
 def chat_with_ollama(payload: dict[str, Any]):
-    """Chat with Ollama model"""
+    """Chat with Ollama model (VIDEaiCore via OpenAI-compatible API)"""
     try:
-        model = payload.get("model", "llama3.2:1b")
-        prompt = payload.get("prompt", "")
+        model = payload.get("model", "VIDEaiCore")
+        messages = payload.get("messages", [{"role": "user", "content": payload.get("prompt", "")}])
 
-        if not prompt:
-            raise HTTPException(status_code=400, detail="Prompt is required")
+        if not any(payload.get(k) for k in ["prompt", "messages"]):
+            raise HTTPException(status_code=400, detail="Prompt or messages required")
 
-        cfg = _wazuh_config()
-        with _session(verify=cfg["verify_ssl"]) as session:
+        with _session() as session:
             response = session.post(
-                urllib.parse.urljoin(OLLAMA_API_URL, "/api/generate"),
+                urllib.parse.urljoin(OLLAMA_API_URL, "/v1/chat/completions"),
                 json={
                     "model": model,
-                    "prompt": prompt,
-                    "stream": False,
+                    "messages": messages,
+                    "max_tokens": payload.get("max_tokens", 512),
+                    "temperature": payload.get("temperature", 0.7),
                 },
                 timeout=120,
             )
@@ -236,7 +236,7 @@ def chat_with_ollama(payload: dict[str, Any]):
         if response.status_code == 200:
             return JSONResponse(response.json())
         raise HTTPException(
-            status_code=response.status_code, detail=f"Ollama API returned {response.status_code}"
+            status_code=response.status_code, detail=f"AI API returned {response.status_code}"
         )
     except HTTPException:
         raise

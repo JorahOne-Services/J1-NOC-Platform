@@ -8,12 +8,13 @@ J1 NOC secret policy (enforced here):
 - Every collector swallows its own exceptions and records status; it must never
   raise into the scheduler.
 """
+
 from __future__ import annotations
 
 import json
 import logging
 import pathlib
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from .. import config
 
@@ -66,7 +67,7 @@ def record_status(name: str, ok: bool, detail: str = "") -> None:
                 "name": name,
                 "ok": ok,
                 "detail": detail,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             }
         )
         write_json(STATUS_FILE, existing)

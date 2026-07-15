@@ -73,6 +73,8 @@ tr:hover td{background:#1a1f2e}
 .credential-item .key{font-weight:600;font-size:.9rem}
 .credential-item .meta{font-size:.8rem;color:var(--muted);margin-top:2px}
 .credential-item .value{font-family:monospace;color:var(--accent);font-size:.9rem}
+.credential-item .desc{font-size:.8rem;color:var(--muted);margin-top:2px;line-height:1.35}
+.credential-item .desc code{background:#0f172a;padding:1px 6px;border-radius:4px;border:1px solid var(--border);color:var(--accent)}
 .credential-item .actions,.integration-item .actions{display:flex;gap:8px}
 /* Toggle */
 .toggle{position:relative;display:inline-block;width:44px;height:24px}
@@ -267,19 +269,29 @@ async function loadCredentials(c) {
     <h2 style="text-transform:capitalize">${esc(cat)}</h2>
     ${schema.filter(s => s.category === cat).map(s => {
       const cr = credMap[s.key] || {};
-      return `<div class="credential-item">
-        <div class="info">
-          <div class="key">${esc(s.label)}</div>
-          <div class="meta">${esc(s.key)}${s.secret ? ' • secret' : ''}</div>
+      const statusBadge = cr.has_value
+        ? '<span style="color:var(--green);font-weight:600">Set</span>'
+        : '<span style="color:var(--orange);font-weight:600">Not set</span>';
+      const desc = s.desc ? `<div class="desc">${esc(s.desc)}</div>` : '';
+      const hint = (!cr.has_value && s.example) ? `<div class="desc" style="color:var(--accent)">e.g. ${esc(s.example)}</div>` : '';
+      return `<div class="credential-item" style="flex-direction:column;align-items:stretch;gap:8px">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div class="info">
+            <div class="key">${esc(s.label)}</div>
+            <div class="meta">${esc(s.key)}${s.secret ? ' • secret' : ''} • ${statusBadge}</div>
+          </div>
+          <div class="actions">
+            <button class="btn-sm" onclick="editCred('${esc(s.key)}','${esc(s.label)}',${s.secret})">✏️ Edit</button>
+          </div>
         </div>
-        <div class="value" id="val_${esc(s.key)}">${cr.has_value ? esc(cr.value) : '<span style="color:var(--orange);font-weight:600">Not set</span>'}</div>
-        <div class="actions">
-          <button class="btn-sm" onclick="editCred('${esc(s.key)}','${esc(s.label)}',${s.secret})">✏️</button>
-        </div>
+        ${desc}${hint}
       </div>`;
     }).join('')}
   </div>`).join('')}`;
-  window.editCred = (key, label, secret) => showCredModal(key, label, secret);
+  window.editCred = (key, label, secret) => {
+    const sc = schema.find(s => s.key === key) || {};
+    showCredModal(key, label, secret, sc.desc, sc.example);
+  };
   window.exportCreds = async () => {
     const r = await fetch('/api/admin/credentials/export');
     const text = await r.text();
@@ -289,29 +301,34 @@ async function loadCredentials(c) {
   };
 }
 
-function showCredModal(key, label, secret) {
+function showCredModal(key, label, secret, desc, example) {
   const existing = document.getElementById('modalContainer');
   existing.style.display = 'block';
+  const descHtml = desc ? `<p class="desc" style="margin-bottom:10px">${esc(desc)}</p>` : '';
+  const exHtml = example ? `<p class="desc" style="color:var(--accent);margin-bottom:14px">Example: <code>${esc(example)}</code></p>` : '';
   existing.innerHTML = `
   <div class="modal-overlay" onclick="closeModal(event)">
     <div class="modal" onclick="event.stopPropagation()">
       <h3>✏️ ${esc(label)}</h3>
+      ${descHtml}${exHtml}
       <div class="form-group">
         <label>${esc(key)}</label>
-        <input type="${secret?'password':'text'}" id="credValue" placeholder="Enter value...">
+        <input type="${secret?'password':'text'}" id="credValue" placeholder="${example ? esc(example) : 'Enter value...'}" autocomplete="off">
       </div>
       <div style="display:flex;gap:12px;justify-content:flex-end">
         <button class="outline" onclick="closeModal()">Cancel</button>
-        <button onclick="saveCred('${esc(key)}')">Save</button>
+        <button onclick="saveCred('${esc(key)}','${esc(label)}')">Save</button>
       </div>
     </div>
   </div>`;
+  const inp = document.getElementById('credValue');
+  if (inp) setTimeout(() => inp.focus(), 50);
   window.closeModal = (e) => { if(!e || e.target.classList.contains('modal-overlay')) { existing.style.display = 'none'; existing.innerHTML = ''; } };
-  window.saveCred = async (k) => {
+  window.saveCred = async (k, lbl) => {
     const val = document.getElementById('credValue').value;
     if (!val) { showToast('Value cannot be empty', 'error'); return; }
     const r = await api('POST', '/api/admin/credentials', { credentials: [{ key: k, value: val }] });
-    if (r) { showToast(`${label} updated`, 'success'); closeModal(); loadTab('credentials'); }
+    if (r) { showToast(`${lbl} updated`, 'success'); closeModal(); loadTab('credentials'); }
   };
 }
 

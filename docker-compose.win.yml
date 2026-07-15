@@ -1,14 +1,38 @@
+# docker-compose.win.yml — Standalone Windows (Docker Desktop) deployment
+#
+# Usage:
+#   docker compose -f docker-compose.win.yml up -d --build
+#
+# This is a COMPLETE compose file for Windows. It does NOT reference the Linux
+# docker-compose.yml — all services are defined here with Windows-compatible settings.
+#
+# Differences from Linux compose:
+#   - No /var/log/* bind mounts (no syslog/auth.log on Windows)
+#   - Named volumes instead of host bind mounts for data
+#   - No extra_hosts override (Docker Desktop provides host.docker.internal)
+#   - CrowdSec runs without Linux log files (metrics/Docker-log collection only)
+#   - nginx uses named volume for static assets
+#
+# Secrets: copy .env.example to .env and fill in real values.
+# NEVER commit .env to git — it's gitignored and blocked by the pre-push hook.
+
 services:
   nginx:
     image: nginx:1.30.3-alpine
     container_name: jnop-nginx
     restart: unless-stopped
     volumes:
-      - /srv/jnop/nginx-data:/usr/share/nginx/html:ro
-      - /home/j1admin/J1-NOC-Platform/nginx/conf.d/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - frontend_static:/usr/share/nginx/html:ro
+      - ./nginx/conf.d/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
     networks:
       - public
       - internal
+    ports:
+      - "80:80"
+      - "5173:80"
+      - "8443:443"
     healthcheck:
       test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1/healthz || exit 1"]
       interval: 10s
@@ -25,14 +49,10 @@ services:
     restart: unless-stopped
     volumes:
       - backend_logs:/logs
-      # RW so the collector loop can persist integration status JSON.
-      # Contents are operational state only (no secrets ever written here).
-      - /srv/jnop/data:/srv/jnop/data:rw
+      - backend_data:/srv/jnop/data:rw
     networks:
       - internal
       - public
-    extra_hosts:
-      - "host.docker.internal:192.168.1.200"
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - REDIS_URL=${REDIS_URL}
@@ -41,12 +61,9 @@ services:
       - REDIS_PASSWORD=${REDIS_PASSWORD}
       - GRAFANA_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
       - MITEL_SNMP_HOST=${MITEL_SNMP_HOST}
-      - OLLAMA_HOST=${OLLAMA_HOST}
       - MITEL_SNMP_COMMUNITY=${MITEL_SNMP_COMMUNITY}
       - OSTICKET_BASE_URL=${OSTICKET_BASE_URL}
       - OSTICKET_API_KEY=${OSTICKET_API_KEY}
-      # Integration credentials are read from the encrypted DB vault at runtime.
-      # Env pass-through is optional; values here are never the source of truth.
       - LDAP_URL=${LDAP_URL:-}
       - LDAP_DOMAIN=${LDAP_DOMAIN:-}
       - LDAP_BIND_DN=${LDAP_BIND_DN:-}
@@ -123,7 +140,6 @@ services:
       retries: 3
 
   prometheus:
-    network_mode: bridge
     image: prom/prometheus:v2.53.0
     container_name: jnop-prometheus
     restart: unless-stopped
@@ -165,7 +181,6 @@ services:
       start_period: 10s
 
   loki:
-    network_mode: bridge
     image: grafana/loki:3.2.0
     container_name: jnop-loki
     restart: unless-stopped
@@ -192,16 +207,10 @@ services:
     volumes:
       - crowdsec_data:/var/lib/crowdsec
       - crowdsec_config:/etc/crowdsec
-      - /var/log/auth.log:/var/log/auth.log:ro
-      - /var/log/syslog:/var/log/syslog:ro
-    # Needs internet egress at startup to fetch hub collections (cscli hub
-    # update / parsers install). The `internal` network is internal:true with
-    # no gateway, so crowdsec hard-looped on DNS lookup of version.crowdsec.net.
-    # Joining `public` gives it outbound egress while keeping the data-plane on
-    # `internal`.
+      # Windows: no /var/log/auth.log or /var/log/syslog
+      # CrowdSec runs in metrics-only mode (Docker log collection still works)
     networks:
       - internal
-      - public
     environment:
       - COLLECTIONS=crowdsecurity/linux crowdsecurity/http-cve
 
@@ -214,6 +223,7 @@ services:
     restart: unless-stopped
     volumes:
       - admin_data:/srv/jnop/admin-service
+      # Docker Desktop for Windows provides the socket at this path
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - internal
@@ -239,6 +249,8 @@ volumes:
     name: jnop_redis_data
   backend_logs:
     name: jnop_backend_logs
+  backend_data:
+    name: jnop_backend_data
   prometheus_data:
     name: jnop_prometheus_data
   grafana_data:
@@ -251,8 +263,8 @@ volumes:
     name: jnop_crowdsec_config
   admin_data:
     name: jnop_admin_data
-  frontend_dist:
-    name: jnop_frontend_dist
+  frontend_static:
+    name: jnop_frontend_static
 
 networks:
   public:

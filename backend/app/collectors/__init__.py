@@ -4,15 +4,16 @@ Importing this package must never fail, even if optional deps (pysnmp, ldap3)
 are missing — each collector guards its own imports. ``run_all`` is safe to call
 from a background loop; it never raises.
 """
+
 from __future__ import annotations
 
 import logging
 
-from . import snmp, ldap, wazuh, osticket
+from . import chrony, ldap, osticket, snmp, wazuh
 
 logger = logging.getLogger("jnop.collectors")
 
-_REGISTRY = (snmp, ldap, wazuh, osticket)
+_REGISTRY = (chrony, snmp, ldap, wazuh, osticket)
 
 
 def run_all() -> dict:

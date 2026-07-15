@@ -4,6 +4,7 @@ Starts on app startup via the FastAPI lifespan and runs every collector on a
 fixed interval. ``run_all`` is CPU-bound/sync (httpx, ldap, snmp) so we run it in
 a worker thread to avoid blocking the event loop. The loop never raises.
 """
+
 from __future__ import annotations
 
 import asyncio

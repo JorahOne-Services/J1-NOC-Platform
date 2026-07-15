@@ -1,6 +1,8 @@
 import contextlib
 import json
 import pathlib
+import socket
+from functools import lru_cache
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, PlainTextResponse
@@ -8,6 +10,36 @@ from fastapi.responses import JSONResponse, PlainTextResponse
 router = APIRouter()
 BASE = pathlib.Path("/srv/jnop/data")
 LOG_DIR = pathlib.Path("/srv/jnop/logs")
+
+# ── DNS reverse-lookup cache ────────────────────────────────────────────────
+
+_dns_cache: dict[str, str] = {}
+
+
+@lru_cache(maxsize=512)
+def _reverse_lookup(ip: str) -> str:
+    """Resolve an IP to a hostname via DNS; cached in-process."""
+    if ip in _dns_cache:
+        return _dns_cache[ip]
+    try:
+        name, _, _ = socket.gethostbyaddr(ip)
+        fqdn = name.rstrip(".")
+        _dns_cache[ip] = fqdn
+        return fqdn
+    except (socket.herror, socket.gaierror, OSError):
+        _dns_cache[ip] = ip
+        return ip
+
+
+def _enrich_hostname(entry: dict) -> dict:
+    """Add Hostname to a client/DC dict via DNS if missing."""
+    if "Hostname" not in entry or not entry["Hostname"]:
+        ip = entry.get("Address") or entry.get("IPAddress", "")
+        if ip:
+            entry = {**entry, "Hostname": _reverse_lookup(ip)}
+    return entry
+
+
 # Defensive: only create if writable (non-root user may not own the parent)
 with contextlib.suppress(OSError):
     LOG_DIR.mkdir(parents=True, exist_ok=True)
@@ -26,6 +58,8 @@ def dc_status():
         data = payload
     else:
         data = []
+    # Enrich with DNS hostnames
+    data = [_enrich_hostname(d) for d in data]
     return JSONResponse(data)
 
 
@@ -36,6 +70,12 @@ def ntp_status():
         payload = json.loads(p.read_text())
     except Exception:
         payload = {}
+    # Enrich clients with DNS hostnames
+    if isinstance(payload, dict):
+        clients = (
+            payload.get("Clients") or payload.get("clients") or payload.get("ntp_clients") or []
+        )
+        payload["Clients"] = [_enrich_hostname(c) for c in clients if isinstance(c, dict)]
     return JSONResponse(payload or {})
 
 
@@ -48,7 +88,7 @@ def ntp_clients():
     except Exception:
         data = {}
     clients = data.get("Clients") or data.get("clients") or data.get("ntp_clients") or []
-    return JSONResponse(clients)
+    return JSONResponse([_enrich_hostname(c) for c in clients if isinstance(c, dict)])
 
 
 @router.post("/dc/forcerepl")
@@ -77,121 +117,72 @@ def serve_logs():
 # ── PBX / Mitel SNMP endpoints ──────────────────────────────────────────────
 
 
+def _load_pbx() -> list[dict]:
+    """Load live PBX data from the SNMP collector output."""
+    p = BASE / "pbx_status.json"
+    try:
+        payload = json.loads(p.read_text())
+    except Exception:
+        return []
+    if isinstance(payload, dict):
+        return payload.get("devices", [])
+    if isinstance(payload, list):
+        return payload
+    return []
+
+
 @router.get("/pbx/status")
 def pbx_status():
-    return JSONResponse(
-        [
-            {
-                "host": "10.0.1.12",
-                "name": "Mitel-MX-2500-A",
-                "model": "MX 2500",
-                "status": "healthy",
-                "uptime_pct": 99.2,
-                "uptime_since": "2026-06-01T00:00:00Z",
-                "cpu": 35,
-                "cpu_cores": 4,
-                "cpu_mhz": 2400,
-                "memory": 33,
-                "ram_used": 2.9,
-                "ram_total": 8.0,
-                "disk": 20,
-                "disk_used": 160.5,
-                "disk_total": 500.0,
-                "active_calls": 201,
-                "registrations": 115,
-                "trunks_active": 11,
-                "trunks_total": 11,
-            },
-            {
-                "host": "10.0.2.45",
-                "name": "Mitel-MX-2500-B",
-                "model": "MX 2500",
-                "status": "degraded",
-                "uptime_pct": 87.5,
-                "uptime_since": "2026-06-01T00:00:00Z",
-                "cpu": 66,
-                "cpu_cores": 4,
-                "cpu_mhz": 2400,
-                "memory": 83,
-                "ram_used": 2.1,
-                "ram_total": 8.0,
-                "disk": 78,
-                "disk_used": 82.8,
-                "disk_total": 500.0,
-                "active_calls": 151,
-                "registrations": 91,
-                "trunks_active": 13,
-                "trunks_total": 14,
-            },
-            {
-                "host": "10.0.3.12",
-                "name": "Mitel-3300-C",
-                "model": "3300",
-                "status": "degraded",
-                "uptime_pct": 87.5,
-                "uptime_since": "2026-06-01T00:00:00Z",
-                "cpu": 61,
-                "cpu_cores": 4,
-                "cpu_mhz": 2400,
-                "memory": 79,
-                "ram_used": 2.9,
-                "ram_total": 8.0,
-                "disk": 50,
-                "disk_used": 138.4,
-                "disk_total": 500.0,
-                "active_calls": 155,
-                "registrations": 105,
-                "trunks_active": 14,
-                "trunks_total": 16,
-            },
-        ]
-    )
+    devices = _load_pbx()
+    if not devices:
+        return JSONResponse([])
+    # Enrich with DNS hostnames where missing
+    for d in devices:
+        if not d.get("hostname") or d["hostname"] == d.get("host"):
+            d["hostname"] = _reverse_lookup(d.get("host", ""))
+    return JSONResponse(devices)
 
 
 @router.get("/pbx/snmp/walk")
 def pbx_snmp_walk():
-    return JSONResponse(
-        {
-            "entries": [
+    devices = _load_pbx()
+    if not devices:
+        return JSONResponse({"devices": [], "entries": []})
+    # Build a flat walk-like structure from the live data
+    entries = []
+    for d in devices:
+        host = d.get("host", "")
+        # System OIDs
+        for key in ("sysName", "sysDescr", "sysUpTime", "sysContact", "sysLocation"):
+            val = d.get(key)
+            if val:
+                if isinstance(val, dict):
+                    val = val.get("human", str(val))
+                entries.append(
+                    {
+                        "host": host,
+                        "hostname": d.get("hostname", host),
+                        "oid": f"sys.{key}",
+                        "description": key,
+                        "value": str(val),
+                        "status": d.get("status", "unknown"),
+                        "collected_at": d.get("collected_at", ""),
+                    }
+                )
+        # Interface entries
+        for iface in d.get("interfaces", []):
+            entries.append(
                 {
-                    "host": "10.0.1.12",
-                    "oid": "1.3.6.1.2.1.1.3.0",
-                    "description": "sysUpTime",
-                    "value": "1234567",
-                    "unit": "centiseconds",
-                    "timestamp": "2026-06-14 12:40:00",
-                    "status": "ok",
-                },
-                {
-                    "host": "10.0.1.12",
-                    "oid": "1.3.6.1.4.1.1066.1.1.1",
-                    "description": "mitelCallActive",
-                    "value": "201",
-                    "unit": "calls",
-                    "timestamp": "2026-06-14 12:40:00",
-                    "status": "ok",
-                },
-                {
-                    "host": "10.0.2.45",
-                    "oid": "1.3.6.1.4.1.1066.1.1.2",
-                    "description": "mitelTrunkStatus",
-                    "value": "1 of 2 trunks down",
-                    "unit": "",
-                    "timestamp": "2026-06-14 12:39:55",
-                    "status": "warn",
-                },
-                {
-                    "host": "10.0.3.12",
-                    "oid": "1.3.6.1.4.1.1066.1.1.3",
-                    "description": "mitelRegFailures",
-                    "value": "3",
-                    "unit": "events",
-                    "timestamp": "2026-06-14 12:39:50",
-                    "status": "warn",
-                },
-            ]
-        }
-    )
+                    "host": host,
+                    "hostname": d.get("hostname", host),
+                    "oid": f"ifDescr.{iface.get('index', '?')}",
+                    "description": f"Interface {iface.get('name', '?')}",
+                    "value": f"{iface.get('operStatus', '?')} / {iface.get('speed_human', '?')}",
+                    "status": "ok" if iface.get("operStatus") == "up" else "warn",
+                    "collected_at": d.get("collected_at", ""),
+                }
+            )
+    return JSONResponse({"devices": devices, "entries": entries})
 
 
 # ── SSL / Certificate Monitoring ─────────────────────────────────────────────

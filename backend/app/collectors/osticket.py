@@ -6,9 +6,10 @@ dashboard overview reads for its open_tickets KPI, so this collector makes the
 ticket count live. Credentials are passed only as the X-API-Key header and are
 never written to disk or logs.
 """
+
 from __future__ import annotations
 
-from .base import get_cred, mask, write_json, record_status, logger
+from .base import get_cred, logger, mask, record_status, write_json
 
 
 def collect() -> None:
