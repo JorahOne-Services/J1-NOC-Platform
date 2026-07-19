@@ -12,6 +12,7 @@ from urllib3.util.retry import Retry
 from app.config import get_settings
 from fastapi import APIRouter, HTTPException
 
+router = APIRouter()
 
 def _wazuh_config():
     settings = get_settings()
