@@ -20,3 +20,6 @@ reports/
 *.bak
 *.sqlite
 backend/noc_local.db
+
+# OneByJorah portfolio tooling
+.venv-screenshot/
